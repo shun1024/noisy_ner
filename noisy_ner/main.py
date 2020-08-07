@@ -72,10 +72,10 @@ def prepare_temp_dir(dataset):
     sys.exit()
     """
     # downloading data into local temp directory
-    dataset = 'deid-xcloud/data/i2b2-2014/train.txt'
+    dataset = 'deid-xcloud/data/i2b22014/train.txt'
     storage_client = storage.Client()
     bucket = storage_client.get_bucket('deid-xcloud')
-    blob = bucket.blob('data/i2b2-2014/train.txt')
+    blob = bucket.blob('data/i2b2_2014/train.txt')
     blob.download_to_filename(os.path.join(temp_indir, 'train.txt'))
     logging.info('Blob: {} downloaded to {}'.format(dataset, temp_indir))
     
