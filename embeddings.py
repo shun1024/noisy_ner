@@ -142,7 +142,7 @@ class BertEmbeddings(TokenEmbeddings):
             token_subtoken_count: Dict[int, int] = {}
 
             for token in sentence:
-                subtokens = self.tokenizer.tokenize(token.text.lower()) # TODO(shunl): lower case for all
+                subtokens = self.tokenizer.tokenize(token.text.lower())  # TODO(shunl): lower case for all
                 bert_tokenization.extend(subtokens)
                 token_subtoken_count[token.idx] = len(subtokens)
 
@@ -162,7 +162,12 @@ class BertEmbeddings(TokenEmbeddings):
             input_ids = self.tokenizer.convert_tokens_to_ids(tokens)
             # The mask has 1 for real tokens and 0 for padding tokens. Only real
             # tokens are attended to.
-            input_mask = [1] * len(input_ids)
+            input_mask = []
+            for i in range(len(input_ids)):
+                if tokens[i] == "[MASK]":
+                    input_mask.append(0)
+                else:
+                    input_mask.append(1)
 
             # Zero-pad up to the sequence length.
             while len(input_ids) < max_sequence_length:
