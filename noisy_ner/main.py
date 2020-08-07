@@ -61,15 +61,30 @@ def prepare_temp_dir(dataset):
     # prepare input and output directory
     temp_dir = tempfile.mkdtemp()
     temp_indir, temp_outdir = os.path.join(temp_dir, 'inputs'), os.path.join(temp_dir, 'outputs')
-    os.system('mkdir {}'.format(temp_indir))
-    os.system('mkdir {}'.format(temp_outdir))
-
+    os.makedirs(temp_indir, exist_ok=True)
+    os.makedirs(temp_outdir, exist_ok=True)
+    """
+    os.system('gsutil cp -r {} {}'.format(os.path.join(dataset, '*'), temp_indir))
+    import time, sys
+    logging.info(dataset)
+    time.sleep(30)
+    logging.info(os.listdir(temp_indir))
+    sys.exit()
+    """
     # downloading data into local temp directory
+    dataset = 'deid-xcloud/data/i2b2-2014/train.txt'
     storage_client = storage.Client()
-    bucket = storage_client.get_bucket(dataset)
-    blob = bucket.blob(bucket)
-    blob.download_to_filename(temp_indir)
+    bucket = storage_client.get_bucket('deid-xcloud')
+    blob = bucket.blob('data/i2b2-2014/train.txt')
+    blob.download_to_filename(os.path.join(temp_indir, 'train.txt'))
     logging.info('Blob: {} downloaded to {}'.format(dataset, temp_indir))
+    
+    # check local directory
+    import time, sys
+    logging.info(dataset)
+    time.sleep(30)
+    logging.info(os.listdir(temp_indir))
+    sys.exit()
     return temp_indir, temp_outdir
 
 
