@@ -199,6 +199,12 @@ def main(_):
                   save_final_model=False)
 
     save_to_ckpt(temp_outdir, tagger, corpus, unlabel_data)
+    
+    if FLAGS.is_gcp:
+        storage_client = storage.Client()
+        bucket = storage_client.get_bucket(FLAGS.output_dir)
+        blob = bucket.blob(bucket)
+        blob.upload_from_filename(temp_outdir)
 
 
 if __name__ == '__main__':
