@@ -8,8 +8,6 @@ import inspect
 import copy
 import gc
 
-from absl import flags
-
 import torch
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.optim.sgd import SGD
@@ -36,11 +34,7 @@ from flair.training_utils import (
 from flair.models import SequenceTagger
 import random
 
-FLAGS = flags.FLAGS
-if FLAGS.is_gcp:
-    from noisy_ner.augmentations import augment
-else:
-    from augmentations import augment
+from noisy_ner.augmentations import augment
 
 log = logging.getLogger("flair")
 
