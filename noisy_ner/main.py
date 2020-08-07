@@ -154,7 +154,7 @@ def save_to_ckpt(temp_outdir, tagger, corpus, unlabel_data):
 
 
 def main(_):
-    exp_name = get_exp_name(['learning_rate'])
+    exp_name = get_exp_name(['training_ratio', 'batch_size', 'learning_rate'])
     logging.info('Start Exp: {}'.format(exp_name))
 
     if FLAGS.is_gcp:
