@@ -12,9 +12,7 @@ import xcloud as xm
 from xcloud import hyper
 
 FLAGS = flags.FLAGS
-flags.DEFINE_string(
-    flags.DEFINE_string('acc_type', 'v100', 'Accelerator type`).')
-
+flags.DEFINE_string('acc_type', 'v100', 'Accelerator type`).')
 
 def main(_):
     runtime = xm.CloudRuntime(
@@ -28,10 +26,6 @@ def main(_):
     args['dataset'] = 'gs://deid-xcloud/data/i2b2-2014/'
     args['output_dir'] = 'gs://deid-xcloud/results/i2b2-2014/'
 
-    if FLAGS.gcs_path:
-        args['gcs_path'] = FLAGS.gcs_path
-
-        # Option 2 This will build a docker image for the user.
     executable = xm.CloudPython(
         name='noisy-ner',
         runtime=runtime,
