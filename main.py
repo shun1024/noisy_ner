@@ -15,9 +15,6 @@ from flair.models import SequenceTagger
 
 from google.cloud import storage
 
-from trainer import ModelTrainer
-from embeddings import CaseEmbedding, BertEmbeddings
-
 FLAGS = flags.FLAGS
 
 # Data
@@ -46,6 +43,13 @@ flags.DEFINE_float('unlabel_weight', 1, 'weight for unlabel loss')
 flags.DEFINE_string('augmentation', 'word_replace', 'augmentation methods')
 flags.DEFINE_float('augmentation_strength', 0.15, 'strength for augmentations')
 flags.DEFINE_float('temperature', 1, 'temperature for teacher model')
+
+if FLAGS.is_gcp:
+    from noisy_ner.trainer import ModelTrainer
+    from noisy_ner.embeddings import CaseEmbedding, BertEmbeddings
+else:
+    from trainer import ModelTrainer
+    from embeddings import CaseEmbedding, BertEmbeddings
 
 
 def get_exp_name(names):
