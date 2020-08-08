@@ -57,34 +57,46 @@ def get_exp_name(names):
     return ','.join(exp_name)
 
 
+def parsing_gcs_path(gcs_path):
+    tmp = gcs_path.split('/')
+    return tmp[0], '/'.join(tmp)
+
+
+def download_folder_from_gcs(local_folder, gcs_path):
+    os.makedirs(local_folder, exist_ok=True)
+    gcs_bucket, gcs_folder = parsing_gcs_path(gcs_path)
+    client = storage.Client()
+    bucket = client.get_bucket(gcs_bucket)
+    blobs = bucket.list_blobs(prefix=gcs_folder)
+    for blob in blobs:
+        logging.info('downloading: {}'.format(blob.path))
+        local_path = os.path.join(local_folder, os.path.basename(blob.name))
+        blob.download_to_filename(local_path)
+
+
+def upload_folder_to_gcs(local_folder, gcs_path):
+    gcs_bucket, gcs_folder = parsing_gcs_path(gcs_path)
+    client = storage.Client()
+    bucket = client.get_bucket(gcs_bucket)
+    for dir_path, _, filenames in os.walk(local_folder):
+        for name in filenames:
+            filename = os.path.join(dir_path, name)
+            logging.info('uploading: {}'.format(blob.path))
+            blob = storage.Blob(os.path.join(gcs_folder, name), bucket)
+            blob.upload_from_filename(filename)
+
+
 def prepare_temp_dir(dataset):
     # prepare input and output directory
     temp_dir = tempfile.mkdtemp()
     temp_indir, temp_outdir = os.path.join(temp_dir, 'inputs'), os.path.join(temp_dir, 'outputs')
     os.makedirs(temp_indir, exist_ok=True)
     os.makedirs(temp_outdir, exist_ok=True)
-    """
-    os.system('gsutil cp -r {} {}'.format(os.path.join(dataset, '*'), temp_indir))
-    import time, sys
-    logging.info(dataset)
-    time.sleep(30)
-    logging.info(os.listdir(temp_indir))
-    sys.exit()
-    """
-    # downloading data into local temp directory
-    dataset = 'deid-xcloud/data/i2b22014/train.txt'
-    storage_client = storage.Client()
-    bucket = storage_client.get_bucket('deid-xcloud')
-    blob = bucket.blob('data/i2b2_2014/train.txt')
-    blob.download_to_filename(os.path.join(temp_indir, 'train.txt'))
-    logging.info('Blob: {} downloaded to {}'.format(dataset, temp_indir))
-    
-    # check local directory
-    import time, sys
-    logging.info(dataset)
-    time.sleep(30)
-    logging.info(os.listdir(temp_indir))
-    sys.exit()
+
+    download_folder_from_gcs(temp_indir, dataset)
+    if FLAGS.teacher:
+        download_folder_from_gcs(temp_indir, FLAGS.teacher)
+
     return temp_indir, temp_outdir
 
 
@@ -140,18 +152,8 @@ def normalize_corpus(corpus, unlabel_data):
     return corpus, unlabel_data
 
 
-def init_from_ckpt(init_ckpt, temp_indir, tagger):
-    if FLAGS.is_gcp:
-        # download from cloud to local directory
-        logging.info('Downloading ckpt: {}'.format(init_ckpt))
-        storage_client = storage.Client()
-        bucket = storage_client.get_bucket(init_ckpt)
-        blob = bucket.blob(bucket)
-        blob.download_to_filename(temp_indir)
-    else:
-        temp_indir = init_ckpt
-
-    logging.info('Loading ckpt from: {}'.format(temp_indir))
+def init_from_ckpt(temp_indir, tagger):
+    logging.info('Loading teacher ckpt from: {}'.format(temp_indir))
     model_path = os.path.join(temp_indir, 'final.ckpt')
     corpus_path = os.path.join(temp_indir, 'corpus.pickle')
     tagger = tagger.load(model_path)
@@ -174,6 +176,7 @@ def main(_):
 
     if FLAGS.is_gcp:
         temp_indir, temp_outdir = prepare_temp_dir(FLAGS.dataset)
+        FLAGS.teacher_dir = temp_indir
     else:
         temp_indir, temp_outdir = FLAGS.dataset, os.path.join(FLAGS.output_dir, exp_name)
 
@@ -196,7 +199,7 @@ def main(_):
                             use_crf=True)
 
     if FLAGS.teacher_dir:
-        tagger, corpus, unlabel_data = init_from_ckpt(FLAGS.teacher_dir, temp_indir, tagger)
+        tagger, corpus, unlabel_data = init_from_ckpt(FLAGS.teacher_dir, tagger)
 
     trainer = ModelTrainer(tagger, corpus, use_tensorboard=True)
     trainer.train(temp_outdir,
@@ -214,12 +217,10 @@ def main(_):
                   save_final_model=False)
 
     save_to_ckpt(temp_outdir, tagger, corpus, unlabel_data)
-    
+
     if FLAGS.is_gcp:
-        storage_client = storage.Client()
-        bucket = storage_client.get_bucket(FLAGS.output_dir)
-        blob = bucket.blob(bucket)
-        blob.upload_from_filename(temp_outdir)
+        gcs_path = os.path.join(FLAGS.output_dir, exp_name)
+        upload_folder_to_gcs(temp_outdir, gcs_path)
 
 
 if __name__ == '__main__':

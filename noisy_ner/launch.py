@@ -24,8 +24,8 @@ def main(_):
 
     args = {}
     args['is_gcp'] = True
-    args['dataset'] = 'gs://deid-xcloud/data/i2b2-2014/'
-    args['output_dir'] = 'gs://deid-xcloud/results/i2b2-2014/'
+    args['dataset'] = 'deid-xcloud/data/i2b2_2014/'
+    args['output_dir'] = 'deid-xcloud/results/i2b2_2014/test/'
 
     executable = xm.CloudPython(
         name='noisy-ner',
@@ -34,35 +34,7 @@ def main(_):
         module_name='noisy_ner.main',
         args=args,
     )
-    """
-
-    input_dir = 'gs://deid-xcloud/data/i2b2-2014/'
-    output_dir = 'gs://deid-xcloud/noisy-ner/outputs/i2b2-2014'
-
-    executable = xm.CloudPython(
-        name='noisy_ner',
-        runtime=runtime,
-        project_path=(
-            os.path.dirname(os.path.dirname(os.path.realpath(__file__)))),
-        module_name='unused',
-        args=args,
-        build_steps=(
-            xm.steps.default_build_steps('noisy_ner') +
-            xm.steps.install_gsutil() +
-            [
-                f'pip install -r requirements.txt',
-                f'mkdir -p inputs/',
-                f'mkdir -p teachers/',
-                f'mkdir -p outputs/'
-            ]),
-        exec_cmds=xm.steps.install_gsutil_creds() + [
-            f'python3 /root/gsutil/gsutil -m cp -r gs://deid-xcloud/data/i2b2-2014 ',
-            'cd stylized_imagenet',
-            'python3 preprocess_imagenet.py "$@"',
-            f'python3 /root/gsutil/gsutil -m cp -r ',
-        ],
-    )
-    
+    """    
     parameters = hyper.product([
         hyper.sweep('training_ratio', [0.01, 0.03, 0.1, 1]),
         hyper.sweep('batch_size', [16, 32, 64]),
@@ -70,7 +42,8 @@ def main(_):
     ])
     """
     parameters = hyper.product([
-        hyper.sweep('batch_size', [16])
+        hyper.sweep('batch_size', [16]),
+        hyper.sweep('epoch', [1])
     ])
 
     exploration = xm.ParameterSweep(
