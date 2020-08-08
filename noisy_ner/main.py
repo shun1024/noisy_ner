@@ -8,6 +8,7 @@ from absl import app
 from absl import flags
 from absl import logging
 
+import flair
 from flair.embeddings import CharacterEmbeddings, StackedEmbeddings
 from flair.data import Token, Sentence
 from flair.datasets import ColumnCorpus
@@ -59,7 +60,7 @@ def get_exp_name(names):
 
 def parsing_gcs_path(gcs_path):
     tmp = gcs_path.split('/')
-    return tmp[0], '/'.join(tmp)
+    return tmp[0], '/'.join(tmp[1:])
 
 
 def download_folder_from_gcs(local_folder, gcs_path):
@@ -69,8 +70,8 @@ def download_folder_from_gcs(local_folder, gcs_path):
     bucket = client.get_bucket(gcs_bucket)
     blobs = bucket.list_blobs(prefix=gcs_folder)
     for blob in blobs:
-        logging.info('downloading: {}'.format(blob.path))
         local_path = os.path.join(local_folder, os.path.basename(blob.name))
+        logging.info('downloading: {} to {}'.format(blob.path, local_path))
         blob.download_to_filename(local_path)
 
 
@@ -81,21 +82,23 @@ def upload_folder_to_gcs(local_folder, gcs_path):
     for dir_path, _, filenames in os.walk(local_folder):
         for name in filenames:
             filename = os.path.join(dir_path, name)
-            logging.info('uploading: {}'.format(blob.path))
             blob = storage.Blob(os.path.join(gcs_folder, name), bucket)
-            blob.upload_from_filename(filename)
+            with open(filename, 'rb') as f:
+                blob.upload_from_file(f)
+            logging.info('uploading: {} to {}'.format(filename, blob.path))
 
 
 def prepare_temp_dir(dataset):
     # prepare input and output directory
+    logging.info('Prepare local directory')
     temp_dir = tempfile.mkdtemp()
     temp_indir, temp_outdir = os.path.join(temp_dir, 'inputs'), os.path.join(temp_dir, 'outputs')
     os.makedirs(temp_indir, exist_ok=True)
     os.makedirs(temp_outdir, exist_ok=True)
 
     download_folder_from_gcs(temp_indir, dataset)
-    if FLAGS.teacher:
-        download_folder_from_gcs(temp_indir, FLAGS.teacher)
+    if FLAGS.teacher_dir is not None:
+        download_folder_from_gcs(temp_indir, FLAGS.teacher_dir)
 
     return temp_indir, temp_outdir
 
@@ -172,11 +175,13 @@ def save_to_ckpt(temp_outdir, tagger, corpus, unlabel_data):
 
 def main(_):
     exp_name = get_exp_name(['training_ratio', 'batch_size', 'learning_rate'])
+    import torch
+    flair.device = torch.device('cuda:0')
+    logging.info('Using {} device'.format(flair.device))
     logging.info('Start Exp: {}'.format(exp_name))
 
     if FLAGS.is_gcp:
         temp_indir, temp_outdir = prepare_temp_dir(FLAGS.dataset)
-        FLAGS.teacher_dir = temp_indir
     else:
         temp_indir, temp_outdir = FLAGS.dataset, os.path.join(FLAGS.output_dir, exp_name)
 
@@ -198,7 +203,9 @@ def main(_):
                             tag_type='ner',
                             use_crf=True)
 
-    if FLAGS.teacher_dir:
+    if FLAGS.teacher_dir is not None:
+        if FLAGS.is_gcp:
+            FLAGS.teacher_dir = temp_indir
         tagger, corpus, unlabel_data = init_from_ckpt(FLAGS.teacher_dir, tagger)
 
     trainer = ModelTrainer(tagger, corpus, use_tensorboard=True)
@@ -221,6 +228,7 @@ def main(_):
     if FLAGS.is_gcp:
         gcs_path = os.path.join(FLAGS.output_dir, exp_name)
         upload_folder_to_gcs(temp_outdir, gcs_path)
+    logging.info('Finished !!!')
 
 
 if __name__ == '__main__':

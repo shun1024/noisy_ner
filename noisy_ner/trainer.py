@@ -1,4 +1,3 @@
-import logging
 from pathlib import Path
 from typing import Union
 import time
@@ -36,6 +35,7 @@ import random
 
 from noisy_ner.augmentations import augment
 
+import logging
 log = logging.getLogger("flair")
 
 
@@ -46,7 +46,7 @@ class ModelTrainer:
         corpus: Corpus,
         optimizer: torch.optim.Optimizer = SGD,
         epoch: int = 0,
-        use_tensorboard: bool = False,
+        use_tensorboard: bool = True,
     ):
         """
         Initialize a model trainer
