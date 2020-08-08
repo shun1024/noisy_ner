@@ -33,7 +33,11 @@ from flair.training_utils import (
 from flair.models import SequenceTagger
 import random
 
+from augmentations import augment
+
+"""
 from noisy_ner.augmentations import augment
+"""
 
 import logging
 log = logging.getLogger("flair")

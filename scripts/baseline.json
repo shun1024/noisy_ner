@@ -1,0 +1,10 @@
+{
+  "command": ["python main.py --dataset ./data/i2b2_2014 --save_teacher 1"],
+  "output_dir": ["../NER_Results/i2b2_2014/baseline"],
+  "embeddings_type": ["char+bert"],
+  "train_label_ratio": [0.01, 0.03, 0.1],
+  "learning_rate": [0.1, 0.3],
+  "batch_size": [32],
+  "dropout": [0, 0.1],
+  "word_dropout": [0.05, 0.2]
+}
