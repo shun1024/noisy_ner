@@ -28,7 +28,7 @@ def main(_):
     args['output_dir'] = 'deid-xcloud/results/i2b2_2014/{}'.format(FLAGS.exp)
 
     executable = xm.CloudPython(
-        name='noisy-ner',
+        name='noisy-ner-{}'.format(FLAGS.exp),
         runtime=runtime,
         project_path=os.path.dirname(os.path.realpath(__file__)),
         module_name='noisy_ner.main',
@@ -37,7 +37,7 @@ def main(_):
     
     parameters = hyper.product([
         hyper.sweep('training_ratio', [0.01, 0.03, 0.1, 1]),
-        hyper.sweep('batch_size', [16, 32, 64]),
+        hyper.sweep('batch_size', [32, 64]),
         hyper.sweep('learning_rate', [1.0, 0.3, 0.1, 0.03]),
         hyper.sweep('epoch', [50, 100])
     ])
@@ -50,7 +50,7 @@ def main(_):
 
     exploration = xm.ParameterSweep(
         executable, parameters, max_parallel_work_units=200)
-    xm.launch(xm.ExperimentDescription('noisy-ner'), exploration)
+    xm.launch(xm.ExperimentDescription('noisy-ner-{}'.format(FLAGS.exp)), exploration)
 
 
 if __name__ == '__main__':

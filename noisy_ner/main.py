@@ -15,13 +15,13 @@ from flair.models import SequenceTagger
 
 from google.cloud import storage
 
+"""
 from trainer import ModelTrainer
 from embeddings import CaseEmbedding, BertEmbeddings
-
 """
+
 from noisy_ner.trainer import ModelTrainer
 from noisy_ner.embeddings import CaseEmbedding, BertEmbeddings
-"""
 
 FLAGS = flags.FLAGS
 
