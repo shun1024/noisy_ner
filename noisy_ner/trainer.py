@@ -443,6 +443,7 @@ class ModelTrainer:
 
                 if self.use_tensorboard:
                     writer.add_scalar("train/loss", train_loss, self.epoch)
+                    writer.add_scalar("train/learning_rate", learning_rate, self.epoch)
                     if unlabel_batch_ratio > 0:
                         writer.add_scalar("train/unsup_train_loss", unsup_train_loss, self.epoch)
 
