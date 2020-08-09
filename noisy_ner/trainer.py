@@ -506,7 +506,7 @@ class ModelTrainer:
 
                     if self.use_tensorboard:
                         writer.add_scalar(
-                            "dev/score (micro-f1)", dev_eval_result.main_score, self.epoch
+                            "dev/score", dev_eval_result.main_score, self.epoch
                         )
                         writer.add_scalar("dev/loss", dev_loss, self.epoch)
 

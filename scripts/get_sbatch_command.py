@@ -36,8 +36,7 @@ def convert_json_to_command():
 
             taskname = '_'.join(taskname)
             post_command = ' '.join(post_command)
-            output_dir = os.path.join(parameter['output_dir'], taskname)
-            command = '%s --saver %s %s' % (parameter['command'], output_dir, post_command)
+            command = '%s --output_dir %s %s' % (parameter['command'], parameter['output_dir'], post_command)
 
             commands.append('"%s"' % command)
     return commands

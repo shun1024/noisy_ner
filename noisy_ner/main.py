@@ -8,7 +8,6 @@ from absl import app
 from absl import flags
 from absl import logging
 
-import flair
 from flair.embeddings import CharacterEmbeddings, StackedEmbeddings
 from flair.data import Token, Sentence
 from flair.datasets import ColumnCorpus
@@ -151,7 +150,9 @@ def normalize_corpus(corpus, unlabel_data):
             for token in dataset.sentences[i]:
                 text = token.text
                 text = digit_to_zero(text)
-                sentence.add_token(Token(text))
+                new_token = copy.deepcopy(token)
+                new_token.text = text
+                sentence.add_token(new_token)
             dataset.sentences[i] = sentence
         return dataset
 
@@ -179,10 +180,7 @@ def save_to_ckpt(temp_outdir, tagger, corpus, unlabel_data):
 
 
 def main(_):
-    exp_name = get_exp_name(['training_ratio', 'batch_size', 'learning_rate'])
-    import torch
-    flair.device = torch.device('cuda:0')
-    logging.info('Using {} device'.format(flair.device))
+    exp_name = get_exp_name(['training_ratio', 'epoch', 'batch_size', 'learning_rate'])
     logging.info('Start Exp: {}'.format(exp_name))
 
     if FLAGS.is_gcp:
@@ -191,6 +189,7 @@ def main(_):
         temp_indir, temp_outdir = FLAGS.dataset, os.path.join(FLAGS.output_dir, exp_name)
 
     corpus = load_dataset(temp_indir)
+    unlabel_data = None
     corpus, unlabel_data = remove_labels(corpus, FLAGS.training_ratio)
     corpus, unlabel_data = normalize_corpus(corpus, unlabel_data)
     tag_dictionary = corpus.make_tag_dictionary(tag_type='ner')
