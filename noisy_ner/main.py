@@ -192,7 +192,7 @@ def main(_):
     corpus, unlabel_data = remove_labels(corpus, FLAGS.training_ratio)
     corpus, unlabel_data = normalize_corpus(corpus, unlabel_data)
     tag_dictionary = corpus.make_tag_dictionary(tag_type='ner')
-    embeddings = StackedEmbeddings(embeddings=[FlairEmbeddings(),
+    embeddings = StackedEmbeddings(embeddings=[FlairEmbeddings('news-forward'),
                                                CharacterEmbeddings(),
                                                CaseEmbedding()])
 

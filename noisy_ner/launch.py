@@ -18,7 +18,7 @@ flags.DEFINE_string('exp', 'baseline', 'exp name')
 
 def main(_):
     runtime = xm.CloudRuntime(
-        cpu=8,
+        cpu=4,
         memory=32,
         accelerator=xm.GPU('nvidia-tesla-' + FLAGS.acc_type.lower(), 1),
     )
@@ -40,8 +40,8 @@ def main(_):
     parameters_list = []
     for ratio in ratio_to_epoch:
         parameters = hyper.product([
-            hyper.fixed('training_ratio', float(ratio)),
-            hyper.fixed('epoch', int(ratio_to_epoch[ratio])),
+            hyper.sweep('training_ratio', [float(ratio)]),
+            hyper.sweep('epoch', [int(ratio_to_epoch[ratio])]),
             hyper.sweep('learning_rate', [0.3, 0.1]),
             hyper.sweep('dropout', [0.1, 0.2]),
             hyper.sweep('hidden_size', [128, 256])
@@ -49,7 +49,6 @@ def main(_):
 
         parameters_list.append(parameters)
     parameters = hyper.chainit(parameters_list)
-    
     """
     parameters = hyper.product([
         hyper.sweep('batch_size', [16]),
