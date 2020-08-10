@@ -180,7 +180,8 @@ def save_to_ckpt(temp_outdir, tagger, corpus, unlabel_data):
 
 
 def main(_):
-    exp_name = get_exp_name(['training_ratio', 'epoch', 'hidden_size', 'dropout', 'learning_rate'])
+    exp_name = get_exp_name(['training_ratio', 'epoch', 'hidden_size', 'dropout', 'learning_rate', 'unlabel_batch_ratio', 'unlabel_weight', 'temperature', 'augmentation_strength'])
+    
     logging.info('Start Exp: {}'.format(exp_name))
 
     if FLAGS.is_gcp:
@@ -192,7 +193,7 @@ def main(_):
     corpus, unlabel_data = remove_labels(corpus, FLAGS.training_ratio)
     corpus, unlabel_data = normalize_corpus(corpus, unlabel_data)
     tag_dictionary = corpus.make_tag_dictionary(tag_type='ner')
-    embeddings = StackedEmbeddings(embeddings=[FlairEmbeddings('news-forward'),
+    embeddings = StackedEmbeddings(embeddings=[BertEmbeddings(),
                                                CharacterEmbeddings(),
                                                CaseEmbedding()])
 
