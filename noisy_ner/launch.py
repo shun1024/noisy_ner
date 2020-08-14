@@ -36,14 +36,19 @@ def main(_):
         args=args,
     )
 
-    ratio_to_epoch = {'1.0': 50, '0.1': 50, '0.03': 100, '0.01': 100}
+    ratio_to_epoch = {'1.0': 40, '0.1': 50, '0.03': 100, '0.01': 100}
     parameters_list = []
     for ratio in ratio_to_epoch:
+        if float(ratio) < 1:
+            continue
         parameters = hyper.product([
             hyper.sweep('training_ratio', [float(ratio)]),
             hyper.sweep('epoch', [int(ratio_to_epoch[ratio])]),
+            hyper.sweep('embedding', ['glove', 'bert', 'flair']),
+            hyper.sweep('number_rnn_layers', [1, 2, 4]),
             hyper.sweep('learning_rate', [0.3, 0.1]),
-            hyper.sweep('dropout', [0.1, 0.2]),
+            hyper.sweep('dropout', [0.15, 0.3]),
+            hyper.sweep('locked_dropout', [0.25, 0.5]),
             hyper.sweep('hidden_size', [128, 256])
         ])
 

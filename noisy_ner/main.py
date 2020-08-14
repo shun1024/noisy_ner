@@ -8,7 +8,7 @@ from absl import app
 from absl import flags
 from absl import logging
 
-from flair.embeddings import CharacterEmbeddings, StackedEmbeddings, FlairEmbeddings
+from flair.embeddings import CharacterEmbeddings, StackedEmbeddings, WordEmbeddings, FlairEmbeddings
 from flair.data import Sentence
 from flair.datasets import ColumnCorpus
 from flair.models import SequenceTagger
@@ -30,6 +30,7 @@ flags.DEFINE_boolean('is_gcp', False, 'whether run on GCP')
 flags.DEFINE_string('dataset', './data/test', 'dataset folder')
 flags.DEFINE_string('teacher_dir', None, 'directory with teacher init ckpt and corpus')
 flags.DEFINE_string('output_dir', './output', 'output directory')
+flags.DEFINE_string('embedding', 'glove', 'embedding type')
 
 # Model flags
 flags.DEFINE_integer('number_rnn_layers', 2, 'number of rnn layers')
@@ -179,6 +180,22 @@ def save_to_ckpt(temp_outdir, tagger, corpus, unlabel_data):
     pickle.dump((corpus, unlabel_data), open(corpus_path, 'wb'))
 
 
+def get_embedding(embedding):
+    embeddings = embedding.split('+')
+    result = [CharacterEmbeddings(), CaseEmbedding()]
+    for embedding in embeddings:
+        if embedding == 'bert':
+            result.append(BertEmbeddings())
+        if embedding == 'glove':
+            result.append(WordEmbeddings('glove'))
+        if embedding == 'flair':
+            result.append(FlairEmbeddings('news-forward'))
+
+    return  StackedEmbeddings(embeddings=result)
+
+
+
+
 def main(_):
     exp_name = get_exp_name(['training_ratio', 'epoch', 'hidden_size', 'dropout', 'learning_rate', 'unlabel_batch_ratio', 'unlabel_weight', 'temperature', 'augmentation_strength'])
     
@@ -193,10 +210,7 @@ def main(_):
     corpus, unlabel_data = remove_labels(corpus, FLAGS.training_ratio)
     corpus, unlabel_data = normalize_corpus(corpus, unlabel_data)
     tag_dictionary = corpus.make_tag_dictionary(tag_type='ner')
-    embeddings = StackedEmbeddings(embeddings=[BertEmbeddings(),
-                                               CharacterEmbeddings(),
-                                               CaseEmbedding()])
-
+    embeddings = get_embedding(FLAGS.embedding)
     tagger = SequenceTagger(hidden_size=FLAGS.hidden_size,
                             dropout=FLAGS.dropout,
                             word_dropout=FLAGS.word_dropout,

@@ -64,6 +64,7 @@ class ModelTrainer:
 
         # init teacher / disable the gradient
         self.teacher: flair.nn.Model = copy.deepcopy(model)
+        self.teacher.eval()
 
         self.best_model: flair.nn.Model = copy.deepcopy(model)
         self.corpus: Corpus = corpus
