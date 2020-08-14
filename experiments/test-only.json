@@ -1,0 +1,16 @@
+{
+  "gpu_type": "t4",
+  "num_gpu": 4,
+  "is_gcp": [true],
+  "dataset": ["deid-xcloud/data/i2b2_2014"],
+  "output_dir": ["deid-xcloud/results/i2b2_2014/test-only"],
+  "training_ratio": [1.0],
+  "epoch": [10],
+  "embedding": ["glove"],
+  "number_rnn_layers": [1],
+  "learning_rate": [0.3],
+  "batch_size": [32],
+  "dropout": [0.15],
+  "locked_dropout": [0.25],
+  "hidden_size": [128]
+}

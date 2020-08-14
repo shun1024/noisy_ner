@@ -15,14 +15,6 @@ from flair.models import SequenceTagger
 
 from google.cloud import storage
 
-"""
-from trainer import ModelTrainer
-from embeddings import CaseEmbedding, BertEmbeddings
-"""
-
-from noisy_ner.trainer import ModelTrainer
-from noisy_ner.embeddings import CaseEmbedding, BertEmbeddings
-
 FLAGS = flags.FLAGS
 
 # Data
@@ -31,6 +23,8 @@ flags.DEFINE_string('dataset', './data/test', 'dataset folder')
 flags.DEFINE_string('teacher_dir', None, 'directory with teacher init ckpt and corpus')
 flags.DEFINE_string('output_dir', './output', 'output directory')
 flags.DEFINE_string('embedding', 'glove', 'embedding type')
+flags.DEFINE_integer('upload_fps', 1, 'update frequency to cloud bucket')
+flags.DEFINE_integer('num_gpu', 1, 'number of gpu')
 
 # Model flags
 flags.DEFINE_integer('number_rnn_layers', 2, 'number of rnn layers')
@@ -181,6 +175,11 @@ def save_to_ckpt(temp_outdir, tagger, corpus, unlabel_data):
 
 
 def get_embedding(embedding):
+    if FLAGS.is_gcp:
+        from noisy_ner.embeddings import CaseEmbedding, BertEmbeddings
+    else:
+        from embeddings import CaseEmbedding, BertEmbeddings
+
     embeddings = embedding.split('+')
     result = [CharacterEmbeddings(), CaseEmbedding()]
     for embedding in embeddings:
@@ -191,14 +190,20 @@ def get_embedding(embedding):
         if embedding == 'flair':
             result.append(FlairEmbeddings('news-forward'))
 
-    return  StackedEmbeddings(embeddings=result)
-
-
+    return StackedEmbeddings(embeddings=result)
 
 
 def main(_):
-    exp_name = get_exp_name(['training_ratio', 'epoch', 'hidden_size', 'dropout', 'learning_rate', 'unlabel_batch_ratio', 'unlabel_weight', 'temperature', 'augmentation_strength'])
-    
+    if FLAGS.is_gcp:
+        from noisy_ner.trainer import ModelTrainer
+    else:
+        from trainer import ModelTrainer
+
+    exp_name = get_exp_name(
+        ['training_ratio', 'epoch', 'embedding', 'hidden_size', 'dropout',
+         'learning_rate', 'unlabel_batch_ratio', 'unlabel_weight',
+         'temperature', 'augmentation_strength'])
+
     logging.info('Start Exp: {}'.format(exp_name))
 
     if FLAGS.is_gcp:
@@ -226,8 +231,12 @@ def main(_):
             FLAGS.teacher_dir = temp_indir
         tagger, corpus, unlabel_data = init_from_ckpt(FLAGS.teacher_dir, tagger)
 
-    trainer = ModelTrainer(tagger, corpus, use_tensorboard=True)
+    trainer = ModelTrainer(tagger, corpus, FLAGS.num_gpu, use_tensorboard=True)
+
     trainer.train(temp_outdir,
+                  is_gcp=FLAGS.is_gcp,
+                  gcp_dir=os.path.join(FLAGS.output_dir, exp_name),
+                  gcp_upload_fn=upload_folder_to_gcs,
                   unlabel_data=unlabel_data,
                   unlabel_batch_ratio=FLAGS.unlabel_batch_ratio,
                   unlabel_weight=FLAGS.unlabel_weight,
@@ -237,15 +246,8 @@ def main(_):
                   learning_rate=FLAGS.learning_rate,
                   mini_batch_size=FLAGS.batch_size,
                   max_epochs=FLAGS.epoch,
-                  embeddings_storage_mode='none',
-                  checkpoint=False,
-                  save_final_model=False)
+                  embeddings_storage_mode='none')
 
-    save_to_ckpt(temp_outdir, tagger, corpus, unlabel_data)
-
-    if FLAGS.is_gcp:
-        gcs_path = os.path.join(FLAGS.output_dir, exp_name)
-        upload_folder_to_gcs(temp_outdir, gcs_path)
     logging.info('Finished !!!')
 
 

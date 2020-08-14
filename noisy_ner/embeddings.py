@@ -38,9 +38,11 @@ class CaseEmbedding(TokenEmbeddings):
         for sentence in sentences:
             for token in sentence:
                 text = token.text
-                is_upper = 1 if text != text.lower() else 0
+                is_lower = 1 if text == text.lower() else 0
+                is_upper = 1 if text == text.upper() else 0
+                is_mix = 1 if is_lower + is_upper == 0 else 0
                 word_embedding = torch.tensor(
-                    np.array([is_upper]), device=flair.device, dtype=torch.float
+                    np.array([is_lower, is_upper, is_mix]), device=flair.device, dtype=torch.float
                 )
                 token.set_embedding('case-embedding-shun', word_embedding)
 
