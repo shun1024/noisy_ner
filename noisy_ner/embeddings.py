@@ -27,7 +27,7 @@ class CaseEmbedding(TokenEmbeddings):
     def __init__(self):
         self.name: str = 'case-embedding-shun'
         self.static_embeddings = False
-        self.__embedding_length: int = 1
+        self.__embedding_length: int = 3
         super().__init__()
 
     @property

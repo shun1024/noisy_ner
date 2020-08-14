@@ -233,7 +233,7 @@ class ModelTrainer:
                     optimizer.zero_grad()
 
                     # forward pass
-                    loss = self.model.forward_loss(batch)
+                    loss = self.model._calculate_loss(self.model.forward(batch), batch)
                     loss.backward()
 
                     # teacher loss
@@ -461,7 +461,7 @@ class ModelTrainer:
                 step += 1
 
                 # forward pass
-                loss = self.model.forward_loss(batch)
+                loss = self.model._calculate_loss(self.model.forward(batch), batch)
 
                 # update optimizer and scheduler
                 optimizer.zero_grad()
