@@ -246,6 +246,7 @@ def main(_):
                   learning_rate=FLAGS.learning_rate,
                   mini_batch_size=FLAGS.batch_size,
                   max_epochs=FLAGS.epoch,
+                  saving_fqs=FLAGS.upload_fps,
                   embeddings_storage_mode='none')
 
     logging.info('Finished !!!')

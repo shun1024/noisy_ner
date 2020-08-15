@@ -1,9 +1,9 @@
 {
   "gpu_type": "t4",
   "num_gpu": 4,
-  "is_gcp": [true],
-  "dataset": ["deid-xcloud/data/i2b2_2014"],
-  "output_dir": ["deid-xcloud/results/i2b2_2014/test-only"],
+  "exp": "test",
+  "dataset": "deid-xcloud/data/i2b2_2014",
+  "output_dir": "xcloud_public_bucket/shunl/results/i2b2_2014/test-only",
   "training_ratio": [1.0],
   "epoch": [10],
   "embedding": ["glove"],
