@@ -7,10 +7,10 @@
   "training_ratio": [1.0],
   "epoch": [100],
   "embedding": ["glove", "bert", "flair"],
-  "number_rnn_layers": [1, 2, 4],
+  "number_rnn_layers": [2, 4],
   "learning_rate": [0.3, 0.1],
   "batch_size": [32],
-  "dropout": [0.15, 0.3],
+  "dropout": [0.2, 0.4],
   "locked_dropout": [0.25, 0.5],
-  "hidden_size": [128, 256]
+  "hidden_size": [256]
 }

@@ -47,7 +47,6 @@ class ModelTrainer:
         self,
         model: flair.nn.Model,
         corpus: Corpus,
-        num_gpu: int,
         optimizer: torch.optim.Optimizer = SGD,
         epoch: int = 0,
         use_tensorboard: bool = True,
@@ -61,8 +60,6 @@ class ModelTrainer:
         :param use_tensorboard: If True, writes out tensorboard information
         """
         self.model: flair.nn.Model = model
-        if num_gpu > 1:
-            self.model = torch.nn.DataParallel(self.model)
 
         # init teacher / disable the gradient
         self.teacher: flair.nn.Model = copy.deepcopy(model)

@@ -4,13 +4,16 @@ from deprecated import deprecated
 from abc import abstractmethod
 from typing import List, Union, Dict
 
+import os
 import torch
 import logging
 import flair
+import gensim
 
 from flair.data import Sentence
 from flair.embeddings.base import ScalarMix
 from flair.embeddings.token import TokenEmbeddings
+from flair.embeddings import WordEmbeddings
 
 from transformers import (
     AlbertTokenizer,
@@ -19,6 +22,27 @@ from transformers import (
     BertModel)
 
 log = logging.getLogger("flair")
+
+
+class LargeGloveEmbeddings(WordEmbeddings):
+    """Standard static word embeddings, such as GloVe or FastText."""
+
+    def __init__(self, glove_dir):
+        """
+        Initializes classic word embeddings - made for large glove embedding
+        """
+        embeddings = '840b-300d-glove'
+        self.embeddings = embeddings
+        self.static_embeddings = True
+
+        # GLOVE embeddings
+        embeddings = os.path.join(glove_dir, 'gensim.glove.840B.300d.txt')
+        self.name: str = str(embeddings)
+        self.precomputed_word_embeddings = gensim.models.KeyedVectors.load_word2vec_format(embeddings, binary=False)
+        self.field = ""
+
+        self.__embedding_length: int = self.precomputed_word_embeddings.vector_size
+        super().__init__()
 
 
 class CaseEmbedding(TokenEmbeddings):

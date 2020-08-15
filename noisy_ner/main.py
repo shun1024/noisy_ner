@@ -176,9 +176,9 @@ def save_to_ckpt(temp_outdir, tagger, corpus, unlabel_data):
 
 def get_embedding(embedding):
     if FLAGS.is_gcp:
-        from noisy_ner.embeddings import CaseEmbedding, BertEmbeddings
+        from noisy_ner.embeddings import CaseEmbedding, BertEmbeddings, LargeGloveEmbeddings
     else:
-        from embeddings import CaseEmbedding, BertEmbeddings
+        from embeddings import CaseEmbedding, BertEmbeddings, LargeGloveEmbeddings
 
     embeddings = embedding.split('+')
     result = [CharacterEmbeddings(), CaseEmbedding()]
@@ -186,7 +186,11 @@ def get_embedding(embedding):
         if embedding == 'bert':
             result.append(BertEmbeddings())
         if embedding == 'glove':
-            result.append(WordEmbeddings('glove'))
+            if FLAGS.is_gcp:
+                download_folder_from_gcs('./glove', 'deid-xcloud/data/glove')
+                result.append(LargeGloveEmbeddings('./glove'))
+            else:
+                result.append(WordEmbeddings('glove'))
         if embedding == 'flair':
             result.append(FlairEmbeddings('news-forward'))
 
@@ -231,7 +235,7 @@ def main(_):
             FLAGS.teacher_dir = temp_indir
         tagger, corpus, unlabel_data = init_from_ckpt(FLAGS.teacher_dir, tagger)
 
-    trainer = ModelTrainer(tagger, corpus, FLAGS.num_gpu, use_tensorboard=True)
+    trainer = ModelTrainer(tagger, corpus, use_tensorboard=True)
 
     trainer.train(temp_outdir,
                   is_gcp=FLAGS.is_gcp,
