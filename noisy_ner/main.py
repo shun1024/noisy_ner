@@ -206,9 +206,8 @@ def main(_):
         from custom_tagger import CustomTagger
 
     exp_name = get_exp_name(
-        ['training_ratio', 'epoch', 'embedding', 'hidden_size', 'dropout',
-         'learning_rate', 'unlabel_batch_ratio', 'unlabel_weight',
-         'temperature', 'augmentation_strength'])
+        ['training_ratio', 'epoch', 'embedding', 'number_rnn_layers', 'learning_rate',
+            'batch_size', 'dropout', 'locked_dropout', 'hidden_size'])
 
     logging.info('Start Exp: {}'.format(exp_name))
 

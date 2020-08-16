@@ -248,33 +248,30 @@ class ModelTrainer:
                             torch.sum(- teacher_prob * torch.nn.functional.log_softmax(student_output, -1), -1))
                         unlabel_loss.backward()
 
-                # do the optimizer step
-                torch.nn.utils.clip_grad_norm_(self.model.parameters(), 5.0)
-                optimizer.step()
+                    # do the optimizer step
+                    torch.nn.utils.clip_grad_norm_(self.model.parameters(), 5.0)
+                    optimizer.step()
 
-                seen_batches += 1
-                train_loss += loss.item()
-                if unlabel_batch_ratio > 0:
-                    unsup_train_loss += unlabel_loss.item() * unlabel_weight
-                    store_embeddings(unbatch_ori_batch, embeddings_storage_mode)
+                    seen_batches += 1
+                    train_loss += loss.item()
+                    if unlabel_batch_ratio > 0:
+                        unsup_train_loss += unlabel_loss.item() * unlabel_weight
+                        store_embeddings(unbatch_ori_batch, embeddings_storage_mode)
 
-                # depending on memory mode, embeddings are moved to CPU, GPU or deleted
-                store_embeddings(batch, embeddings_storage_mode)
-                gc.collect()
-
-                batch_time += time.time() - start_time
-                if seen_batches % modulo == 0:
-                    log.info(
-                        f"epoch {self.epoch} - iter {seen_batches}/{total_number_of_batches} - loss "
-                        f"{train_loss / seen_batches:.4f} - unlabel_loss {unsup_train_loss / seen_batches:.4f}"
-                        f" - samples/sec: {mini_batch_size * modulo / batch_time:.2f}"
-                    )
+                    # depending on memory mode, embeddings are moved to CPU, GPU or deleted
+                    store_embeddings(batch, embeddings_storage_mode)
+                    batch_time += time.time() - start_time
+                    if seen_batches % modulo == 0:
+                        log.info(
+                            f"epoch {self.epoch} - iter {seen_batches}/{total_number_of_batches} - loss "
+                            f"{train_loss / seen_batches:.4f} - unlabel_loss {unsup_train_loss / seen_batches:.4f}"
+                            f" - samples/sec: {mini_batch_size * modulo / batch_time:.2f}"
+                        )
+                        batch_time = 0
 
                 train_loss /= seen_batches
                 if unlabel_batch_ratio > 0:
                     unsup_train_loss /= seen_batches
-
-                self.model.eval()
 
                 log_line(log)
                 log.info(
@@ -287,6 +284,7 @@ class ModelTrainer:
                     if unlabel_batch_ratio > 0:
                         writer.add_scalar("train/unsup_train_loss", unsup_train_loss, self.epoch)
 
+                self.model.eval()
                 if self.epoch % saving_fqs == 0:
                     log.info("Saving model & corpus to local directory")
                     save_to_ckpt(base_path, self.model, self.corpus, unlabel_data)

@@ -31,6 +31,7 @@ class LargeGloveEmbeddings(WordEmbeddings):
         """
         Initializes classic word embeddings - made for large glove embedding
         """
+        super().__init__('glove')
         embeddings = '840b-300d-glove'
         self.embeddings = embeddings
         self.static_embeddings = True
@@ -42,7 +43,6 @@ class LargeGloveEmbeddings(WordEmbeddings):
         self.field = ""
 
         self.__embedding_length: int = self.precomputed_word_embeddings.vector_size
-        super().__init__()
 
 
 class CaseEmbedding(TokenEmbeddings):
