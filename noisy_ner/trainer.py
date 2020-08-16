@@ -16,7 +16,6 @@ from flair.datasets import DataLoader
 from flair.optim import ExpAnnealLR
 from flair.training_utils import (
     init_output_file,
-    WeightExtractor,
     log_line,
     add_file_handler,
     Result,
@@ -312,6 +311,12 @@ class ModelTrainer:
                     f"DEV : loss {dev_loss} - score {dev_eval_result.main_score}"
                 )
 
+                dev_sub_scores = dev_eval_result.sub_scores
+
+                log.info(
+                    f"DEV (PHI): F1 {dev_sub_scores[0]} Precision {dev_sub_scores[1]} Recell {dev_sub_scores[2]}"
+                )
+
                 current_score = dev_eval_result.main_score
 
                 # depending on memory mode, embeddings are moved to CPU, GPU or deleted
@@ -319,9 +324,12 @@ class ModelTrainer:
 
                 if self.use_tensorboard:
                     writer.add_scalar(
-                        "dev/score", dev_eval_result.main_score, self.epoch
+                        "dev/micro_f1", dev_eval_result.main_score, self.epoch
                     )
                     writer.add_scalar("dev/loss", dev_loss, self.epoch)
+                    writer.add_scalar("dev/PHI_f1", dev_sub_scores[0])
+                    writer.add_scalar("dev/PHI_precision", dev_sub_scores[1])
+                    writer.add_scalar("dev/PHI_recall", dev_sub_scores[2])
 
                 # determine learning rate annealing through scheduler
                 scheduler.step(current_score)

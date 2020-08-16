@@ -200,8 +200,10 @@ def get_embedding(embedding):
 def main(_):
     if FLAGS.is_gcp:
         from noisy_ner.trainer import ModelTrainer
+        from noisy_ner.custom_tagger import CustomTagger
     else:
         from trainer import ModelTrainer
+        from custom_tagger import CustomTagger
 
     exp_name = get_exp_name(
         ['training_ratio', 'epoch', 'embedding', 'hidden_size', 'dropout',
@@ -220,15 +222,15 @@ def main(_):
     corpus, unlabel_data = normalize_corpus(corpus, unlabel_data)
     tag_dictionary = corpus.make_tag_dictionary(tag_type='ner')
     embeddings = get_embedding(FLAGS.embedding)
-    tagger = SequenceTagger(hidden_size=FLAGS.hidden_size,
-                            dropout=FLAGS.dropout,
-                            word_dropout=FLAGS.word_dropout,
-                            locked_dropout=FLAGS.locked_dropout,
-                            rnn_layers=FLAGS.number_rnn_layers,
-                            embeddings=embeddings,
-                            tag_dictionary=tag_dictionary,
-                            tag_type='ner',
-                            use_crf=True)
+    tagger = CustomTagger(hidden_size=FLAGS.hidden_size,
+                          dropout=FLAGS.dropout,
+                          word_dropout=FLAGS.word_dropout,
+                          locked_dropout=FLAGS.locked_dropout,
+                          rnn_layers=FLAGS.number_rnn_layers,
+                          embeddings=embeddings,
+                          tag_dictionary=tag_dictionary,
+                          tag_type='ner',
+                          use_crf=True)
 
     if FLAGS.teacher_dir is not None:
         if FLAGS.is_gcp:
