@@ -11,33 +11,26 @@ def dict_product(dicts):
     return (dict(zip(dicts, x)) for x in itertools.product(*dicts.values()))
 
 
-def get_short_key(name):
-    tmp = name.split('_')
-    result = []
-    for t in tmp:
-        result.append(t[0])
-    return ''.join(result)
-
-
 def convert_json_to_command():
-    non_special_parameter = ['command', 'output_dir', 'data_dir']
+    non_special_parameter = ['output_dir', 'dataset', 'gpu_type', 'num_gpu', 'exp']
     commands = []
     with open(json_file, 'r') as f:
         data = json.load(f)
+        base_command = 'python ./noisy_ner/main.py --dataset %s --output_dir %s' % (data['dataset'], data['output_dir'])
+
+        for key in list(data):
+            if key in non_special_parameter:
+                del data[key]
+        
         parameters = dict_product(data)
         for parameter in parameters:
-            taskname = []
             post_command = []
             for key in parameter:
                 if key not in non_special_parameter:
-                    short_key = get_short_key(key)
-                    taskname.append('%s%s' % (short_key, str(parameter[key])))
                     post_command.append('--%s %s' % (key, str(parameter[key])))
 
-            taskname = '_'.join(taskname)
             post_command = ' '.join(post_command)
-            command = '%s --output_dir %s %s' % (parameter['command'], parameter['output_dir'], post_command)
-
+            command = '%s %s' % (base_command, post_command)
             commands.append('"%s"' % command)
     return commands
 
