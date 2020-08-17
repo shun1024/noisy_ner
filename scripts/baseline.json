@@ -1,8 +1,6 @@
 {
   "command": ["python ./noisy_ner/main.py --dataset ./data/i2b2_2014"],
-  "output_dir": ["../noisy_ner_results/i2b2_2014"],
-  "training_ratio": [0.01, 0.03, 0.1, 0.1],
-  "learning_rate": [0.1, 0.3],
-  "epoch": [50, 100],
-  "batch_size": [32]
+  "output_dir": ["../output/i2b2_2014/baseline"],
+  "training_ratio": [0.01, 0.03, 0.1, 1],
+  "learning_rate": [0.1, 0.3]
 }

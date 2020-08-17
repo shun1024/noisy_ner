@@ -22,19 +22,19 @@ flags.DEFINE_boolean('is_gcp', False, 'whether run on GCP')
 flags.DEFINE_string('dataset', './data/test', 'dataset folder')
 flags.DEFINE_string('teacher_dir', None, 'directory with teacher init ckpt and corpus')
 flags.DEFINE_string('output_dir', './output', 'output directory')
-flags.DEFINE_string('embedding', 'glove', 'embedding type')
+flags.DEFINE_string('embedding', 'bert', 'embedding type')
 flags.DEFINE_integer('upload_fps', 1, 'update frequency to cloud bucket')
 flags.DEFINE_integer('num_gpu', 1, 'number of gpu')
 
 # Model flags
 flags.DEFINE_integer('number_rnn_layers', 2, 'number of rnn layers')
-flags.DEFINE_integer('hidden_size', 128, 'number of hidden size')
-flags.DEFINE_float('dropout', 0.1, 'overall dropout rate')
+flags.DEFINE_integer('hidden_size', 256, 'number of hidden size')
+flags.DEFINE_float('dropout', 0.15, 'overall dropout rate')
 flags.DEFINE_float('word_dropout', 0.05, 'word dropout rate')
 flags.DEFINE_float('locked_dropout', 0.5, 'dropout rate for whole embedding')
 
 # Optimization flags
-flags.DEFINE_integer('epoch', 50, 'number of epochs')
+flags.DEFINE_integer('epoch', 75, 'number of epochs')
 flags.DEFINE_enum('optimizer', 'SGD', ['SGD', 'Adam'], 'optimizer')
 flags.DEFINE_float('learning_rate', 0.3, 'learning rate')
 flags.DEFINE_integer('batch_size', 32, 'batch size')

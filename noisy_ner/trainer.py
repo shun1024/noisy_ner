@@ -82,12 +82,12 @@ class ModelTrainer:
         augment_method: str = 'word_replace',
         augment_prob: float = 0.15,
         temperature: float = 1,
-        saving_fqs: int = 10,
+        saving_fqs: int = 1,
         learning_rate: float = 0.1,
         mini_batch_size: int = 32,
         max_epochs: int = 100,
         anneal_factor: float = 0.5,
-        patience: int = 3,
+        patience: int = 2,
         min_learning_rate: float = 0.0001,
         embeddings_storage_mode: str = "cpu",
         shuffle: bool = True,
@@ -325,9 +325,9 @@ class ModelTrainer:
                         "dev/micro_f1", dev_eval_result.main_score, self.epoch
                     )
                     writer.add_scalar("dev/loss", dev_loss, self.epoch)
-                    writer.add_scalar("dev/PHI_f1", dev_sub_scores[0])
-                    writer.add_scalar("dev/PHI_precision", dev_sub_scores[1])
-                    writer.add_scalar("dev/PHI_recall", dev_sub_scores[2])
+                    writer.add_scalar("dev/PHI_f1", dev_sub_scores[0], self.epoch)
+                    writer.add_scalar("dev/PHI_precision", dev_sub_scores[1], self.epoch)
+                    writer.add_scalar("dev/PHI_recall", dev_sub_scores[2], self.epoch)
 
                 # determine learning rate annealing through scheduler
                 scheduler.step(current_score)
