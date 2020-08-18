@@ -1,0 +1,15 @@
+{
+  "gpu_type": "t4",
+  "num_gpu": 1,
+  "exp": "conll-baseline",
+  "dataset": "deid-xcloud/data/conll_03",
+  "output_dir": "xcloud_public_bucket/shunl/results/conll_03/baseline",
+  "training_ratio": [1.0],
+  "epoch": [100],
+  "embedding": ["glove", "bert", "flair"],
+  "number_rnn_layers": [2],
+  "learning_rate": [0.3, 0.1, 0.03],
+  "batch_size": [32, 64],
+  "dropout": [0.1, 0.2],
+  "hidden_size": [128, 256]
+}

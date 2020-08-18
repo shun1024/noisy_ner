@@ -216,7 +216,15 @@ def main(_):
     else:
         temp_indir, temp_outdir = FLAGS.dataset, os.path.join(FLAGS.output_dir, exp_name)
 
-    corpus = load_dataset(temp_indir)
+    if 'conll_03' in FLAGS.dataset:
+        import flair, glob, shutil
+        temp_conll_dir = os.path.join(temp_indir, 'conll_03')
+        os.makedirs(temp_conll_dir, exist_ok=True)
+        for filename in glob.glob(os.path.join(temp_indir, 'eng*')):
+            shutil.copy(filename, temp_conll_dir)
+        corpus = flair.datasets.sequence_labeling.CONLL_03(temp_indir)
+    else:
+        corpus = load_dataset(temp_indir)
     corpus, unlabel_data = remove_labels(corpus, FLAGS.training_ratio)
     corpus, unlabel_data = normalize_corpus(corpus, unlabel_data)
     tag_dictionary = corpus.make_tag_dictionary(tag_type='ner')
