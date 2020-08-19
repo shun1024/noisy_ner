@@ -177,6 +177,7 @@ class ModelTrainer:
 
         # At any point you can hit Ctrl + C to break out of training early.
         try:
+            best_score = 0
             for self.epoch in range(self.epoch + 1, max_epochs + 1):
                 log_line(log)
 
@@ -337,7 +338,10 @@ class ModelTrainer:
                     writer.add_scalar("dev/PHI_recall", dev_sub_scores[2], self.epoch)
 
                 # determine learning rate annealing through scheduler
-                scheduler.step(current_score)
+                if learning_rate_scheduler == "plateau":
+                    scheduler.step(current_score)
+                else:
+                    scheduler.step()
 
                 # determine bad epoch number
                 try:
@@ -353,7 +357,8 @@ class ModelTrainer:
                 log.info(f"BAD EPOCHS (no improvement): {bad_epochs}")
 
                 # if we use dev data, remember best model based on dev evaluation score
-                if current_score == scheduler.best:
+                if current_score > best_score:
+                    best_score = current_score
                     self.best_model = copy.deepcopy(self.model)
         except KeyboardInterrupt:
             log_line(log)

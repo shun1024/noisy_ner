@@ -8,6 +8,9 @@ from absl import app
 from absl import flags
 from absl import logging
 
+
+from torch.utils.data.dataset import ConcatDataset
+import flair, glob, shutil
 from flair.embeddings import CharacterEmbeddings, StackedEmbeddings, WordEmbeddings, FlairEmbeddings
 from flair.data import Sentence
 from flair.datasets import ColumnCorpus
@@ -217,7 +220,6 @@ def main(_):
         temp_indir, temp_outdir = FLAGS.dataset, os.path.join(FLAGS.output_dir, exp_name)
 
     if 'conll_03' in FLAGS.dataset:
-        import flair, glob, shutil
         temp_conll_dir = os.path.join(temp_indir, 'conll_03')
         os.makedirs(temp_conll_dir, exist_ok=True)
         for filename in glob.glob(os.path.join(temp_indir, 'eng*')):
@@ -227,9 +229,10 @@ def main(_):
         corpus = load_dataset(temp_indir)
 
     if FLAGS.train_with_dev:
-        corpus.train = flair.datasets.ConcatDataset([corpus.train, corpus.dev])
-
-    corpus.dev = corpus.test  # TODO (shunl): hack for monitoring, to be removed
+        corpus.train.sentences = corpus.train.sentences + corpus.train.sentences
+        corpus.train.total_sentence_count = len(corpus.train.sentences)
+    # TODO (shunl): hack for monitoring, to be removed
+    corpus = flair.data.Corpus(corpus.train, corpus.test, corpus.test, name='dataset') 
 
     corpus, unlabel_data = remove_labels(corpus, FLAGS.training_ratio)
     corpus, unlabel_data = normalize_corpus(corpus, unlabel_data)
