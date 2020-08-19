@@ -184,8 +184,10 @@ def get_embedding(embedding):
         from embeddings import CaseEmbedding, CustomBertEmbeddings, LargeGloveEmbeddings, CustomCharacterEmbeddings
 
     embeddings = embedding.split('+')
-    result = [CustomCharacterEmbeddings(), CaseEmbedding()]
+    result = [CaseEmbedding()]
     for embedding in embeddings:
+        if embedding == 'char':
+            result.append(CustomCharacterEmbeddings()) 
         if embedding == 'bert':
             result.append(CustomBertEmbeddings())
         if embedding == 'glove':
