@@ -11,7 +11,6 @@ from absl import logging
 from flair.embeddings import CharacterEmbeddings, StackedEmbeddings, WordEmbeddings, FlairEmbeddings
 from flair.data import Sentence
 from flair.datasets import ColumnCorpus
-from flair.models import SequenceTagger
 
 from google.cloud import storage
 
@@ -25,6 +24,7 @@ flags.DEFINE_string('output_dir', './output', 'output directory')
 flags.DEFINE_string('embedding', 'bert', 'embedding type')
 flags.DEFINE_integer('upload_fps', 1, 'update frequency to cloud bucket')
 flags.DEFINE_integer('num_gpu', 1, 'number of gpu')
+flags.DEFINE_integer('train_with_dev', 1, 'train with dev')
 
 # Model flags
 flags.DEFINE_integer('number_rnn_layers', 2, 'number of rnn layers')
@@ -207,7 +207,7 @@ def main(_):
 
     exp_name = get_exp_name(
         ['training_ratio', 'epoch', 'embedding', 'number_rnn_layers', 'learning_rate',
-            'batch_size', 'dropout', 'locked_dropout', 'hidden_size'])
+         'batch_size', 'dropout', 'locked_dropout', 'hidden_size'])
 
     logging.info('Start Exp: {}'.format(exp_name))
 
@@ -225,6 +225,7 @@ def main(_):
         corpus = flair.datasets.sequence_labeling.CONLL_03(temp_indir)
     else:
         corpus = load_dataset(temp_indir)
+
     corpus, unlabel_data = remove_labels(corpus, FLAGS.training_ratio)
     corpus, unlabel_data = normalize_corpus(corpus, unlabel_data)
     tag_dictionary = corpus.make_tag_dictionary(tag_type='ner')

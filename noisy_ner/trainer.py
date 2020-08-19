@@ -3,10 +3,9 @@ from typing import Union
 import time
 import datetime
 import copy
-import gc
 
 import torch
-from torch.optim.lr_scheduler import ReduceLROnPlateau
+from torch.optim.lr_scheduler import ReduceLROnPlateau, MultiStepLR
 from torch.optim.sgd import SGD
 
 import flair
@@ -83,6 +82,7 @@ class ModelTrainer:
         augment_prob: float = 0.15,
         temperature: float = 1,
         saving_fqs: int = 1,
+        train_with_dev: bool = False,
         learning_rate: float = 0.1,
         mini_batch_size: int = 32,
         max_epochs: int = 100,
@@ -157,16 +157,25 @@ class ModelTrainer:
             self.model.parameters(), lr=learning_rate, **kwargs
         )
 
-        anneal_mode = "max"
-        scheduler: ReduceLROnPlateau = ReduceLROnPlateau(
-            optimizer,
-            factor=anneal_factor,
-            patience=patience,
-            mode=anneal_mode,
-            verbose=True,
-        )
+        if not train_with_dev:
+            anneal_mode = "max"
+            scheduler: ReduceLROnPlateau = ReduceLROnPlateau(
+                optimizer,
+                factor=anneal_factor,
+                patience=patience,
+                mode=anneal_mode,
+                verbose=True,
+            )
+        else:
+            scheduler: MultiStepLR = MultiStepLR(
+                optimizer,
+                milestones=[20, 40, 60],
+                gamma=anneal_factor
+            )
 
         train_data = self.corpus.train
+        if train_with_dev:
+            train_data = flair.datasets.ConcatDataset([self.corpus.train, self.corpus.dev])
 
         # At any point you can hit Ctrl + C to break out of training early.
         try:
@@ -420,96 +429,3 @@ class ModelTrainer:
         final_score = test_results.main_score
 
         return final_score
-
-    def find_learning_rate(
-        self,
-        base_path: Union[Path, str],
-        file_name: str = "learning_rate.tsv",
-        start_learning_rate: float = 1e-7,
-        end_learning_rate: float = 10,
-        iterations: int = 100,
-        mini_batch_size: int = 32,
-        stop_early: bool = True,
-        smoothing_factor: float = 0.98,
-        **kwargs,
-    ) -> Path:
-        best_loss = None
-        moving_avg_loss = 0
-
-        # cast string to Path
-        if type(base_path) is str:
-            base_path = Path(base_path)
-        learning_rate_tsv = init_output_file(base_path, file_name)
-
-        with open(learning_rate_tsv, "a") as f:
-            f.write("ITERATION\tTIMESTAMP\tLEARNING_RATE\tTRAIN_LOSS\n")
-
-        optimizer = self.optimizer(
-            self.model.parameters(), lr=start_learning_rate, **kwargs
-        )
-
-        train_data = self.corpus.train
-
-        scheduler = ExpAnnealLR(optimizer, end_learning_rate, iterations)
-
-        model_state = self.model.state_dict()
-        self.model.train()
-
-        step = 0
-        while step < iterations:
-            batch_loader = DataLoader(
-                train_data, batch_size=mini_batch_size, shuffle=True
-            )
-            for batch in batch_loader:
-                step += 1
-
-                # forward pass
-                loss = self.model._calculate_loss(self.model.forward(batch), batch)
-
-                # update optimizer and scheduler
-                optimizer.zero_grad()
-                loss.backward()
-                torch.nn.utils.clip_grad_norm_(self.model.parameters(), 5.0)
-                optimizer.step()
-                scheduler.step(step)
-
-                print(scheduler.get_lr())
-                learning_rate = scheduler.get_lr()[0]
-
-                loss_item = loss.item()
-                if step == 1:
-                    best_loss = loss_item
-                else:
-                    if smoothing_factor > 0:
-                        moving_avg_loss = (
-                            smoothing_factor * moving_avg_loss
-                            + (1 - smoothing_factor) * loss_item
-                        )
-                        loss_item = moving_avg_loss / (
-                            1 - smoothing_factor ** (step + 1)
-                        )
-                    if loss_item < best_loss:
-                        best_loss = loss
-
-                if step > iterations:
-                    break
-
-                if stop_early and (loss_item > 4 * best_loss or torch.isnan(loss)):
-                    log_line(log)
-                    log.info("loss diverged - stopping early!")
-                    step = iterations
-                    break
-
-                with open(str(learning_rate_tsv), "a") as f:
-                    f.write(
-                        f"{step}\t{datetime.datetime.now():%H:%M:%S}\t{learning_rate}\t{loss_item}\n"
-                    )
-
-            self.model.load_state_dict(model_state)
-            self.model.to(flair.device)
-
-        log_line(log)
-        log.info(f"learning rate finder finished - plot {learning_rate_tsv}")
-        log_line(log)
-
-        return Path(learning_rate_tsv)

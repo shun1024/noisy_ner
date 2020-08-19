@@ -5,11 +5,11 @@
   "dataset": "deid-xcloud/data/i2b2_2014",
   "output_dir": "xcloud_public_bucket/shunl/results/i2b2_2014/new_baseline",
   "training_ratio": [1.0],
-  "epoch": [50],
+  "epoch": [65],
   "embedding": ["bert"],
   "number_rnn_layers": [2],
-  "learning_rate": [0.1],
-  "batch_size": [32],
-  "dropout": [0.2],
-  "hidden_size": [256]
+  "learning_rate": [0.1, 0.3],
+  "batch_size": [32, 64],
+  "dropout": [0.2, 0.5],
+  "hidden_size": [256, 512]
 }
