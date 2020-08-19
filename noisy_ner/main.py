@@ -226,6 +226,11 @@ def main(_):
     else:
         corpus = load_dataset(temp_indir)
 
+    if FLAGS.train_with_dev:
+        corpus.train = flair.datasets.ConcatDataset([corpus.train, corpus.dev])
+
+    corpus.dev = corpus.test  # TODO (shunl): hack for monitoring, to be removed
+
     corpus, unlabel_data = remove_labels(corpus, FLAGS.training_ratio)
     corpus, unlabel_data = normalize_corpus(corpus, unlabel_data)
     tag_dictionary = corpus.make_tag_dictionary(tag_type='ner')

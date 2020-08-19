@@ -82,7 +82,7 @@ class ModelTrainer:
         augment_prob: float = 0.15,
         temperature: float = 1,
         saving_fqs: int = 1,
-        train_with_dev: bool = False,
+        learning_rate_scheduler: str = "step",
         learning_rate: float = 0.1,
         mini_batch_size: int = 32,
         max_epochs: int = 100,
@@ -157,7 +157,7 @@ class ModelTrainer:
             self.model.parameters(), lr=learning_rate, **kwargs
         )
 
-        if not train_with_dev:
+        if learning_rate_scheduler == "plateau":
             anneal_mode = "max"
             scheduler: ReduceLROnPlateau = ReduceLROnPlateau(
                 optimizer,
@@ -174,8 +174,6 @@ class ModelTrainer:
             )
 
         train_data = self.corpus.train
-        if train_with_dev:
-            train_data = flair.datasets.ConcatDataset([self.corpus.train, self.corpus.dev])
 
         # At any point you can hit Ctrl + C to break out of training early.
         try:
