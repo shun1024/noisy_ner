@@ -8,7 +8,6 @@ from absl import app
 from absl import flags
 from absl import logging
 
-
 from torch.utils.data.dataset import ConcatDataset
 import flair, glob, shutil
 from flair.embeddings import CharacterEmbeddings, StackedEmbeddings, WordEmbeddings, FlairEmbeddings
@@ -179,15 +178,16 @@ def save_to_ckpt(temp_outdir, tagger, corpus, unlabel_data):
 
 def get_embedding(embedding):
     if FLAGS.is_gcp:
-        from noisy_ner.embeddings import CaseEmbedding, BertEmbeddings, LargeGloveEmbeddings
+        from noisy_ner.embeddings import CaseEmbedding, CustomBertEmbeddings, LargeGloveEmbeddings, \
+            CustomCharacterEmbeddings
     else:
-        from embeddings import CaseEmbedding, BertEmbeddings, LargeGloveEmbeddings
+        from embeddings import CaseEmbedding, CustomBertEmbeddings, LargeGloveEmbeddings, CustomCharacterEmbeddings
 
     embeddings = embedding.split('+')
-    result = [CharacterEmbeddings(), CaseEmbedding()]
+    result = [CustomCharacterEmbeddings(), CaseEmbedding()]
     for embedding in embeddings:
         if embedding == 'bert':
-            result.append(BertEmbeddings())
+            result.append(CustomBertEmbeddings())
         if embedding == 'glove':
             if FLAGS.is_gcp:
                 download_folder_from_gcs('./glove', 'deid-xcloud/data/glove')
@@ -232,7 +232,7 @@ def main(_):
         corpus.train.sentences = corpus.train.sentences + corpus.train.sentences
         corpus.train.total_sentence_count = len(corpus.train.sentences)
     # TODO (shunl): hack for monitoring, to be removed
-    corpus = flair.data.Corpus(corpus.train, corpus.test, corpus.test, name='dataset') 
+    corpus = flair.data.Corpus(corpus.train, corpus.test, corpus.test, name='dataset')
 
     corpus, unlabel_data = remove_labels(corpus, FLAGS.training_ratio)
     corpus, unlabel_data = normalize_corpus(corpus, unlabel_data)

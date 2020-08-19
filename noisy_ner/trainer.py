@@ -320,7 +320,7 @@ class ModelTrainer:
                 dev_sub_scores = dev_eval_result.sub_scores
 
                 log.info(
-                    f"DEV (PHI): F1 {dev_sub_scores[0]} Precision {dev_sub_scores[1]} Recell {dev_sub_scores[2]}"
+                    f"DEV (PHI): F1 {dev_sub_scores[0]} Precision {dev_sub_scores[1]} Recall {dev_sub_scores[2]}"
                 )
 
                 current_score = dev_eval_result.main_score
