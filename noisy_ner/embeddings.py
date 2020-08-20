@@ -35,6 +35,15 @@ class LargeGloveEmbeddings(WordEmbeddings):
 
         self.__embedding_length: int = self.precomputed_word_embeddings.vector_size
 
+    def _add_embeddings_internal(self, sentences: List[Sentence]) -> List[Sentence]:
+
+        for i, sentence in enumerate(sentences):
+            for token, token_idx in zip(sentence.tokens, range(len(sentence.tokens))):
+                word_embedding = self.get_cached_vec(word=token.text)
+                token.set_embedding(self.name, word_embedding)
+
+        return sentences
+
 
 class CaseEmbedding(TokenEmbeddings):
     """Static Case Embedding 1 - Upper / 0 - Lower."""
