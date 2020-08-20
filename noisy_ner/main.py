@@ -191,8 +191,8 @@ def get_embedding(embedding):
         if embedding == 'bert':
             result.append(CustomBertEmbeddings())
         if embedding == 'glove':
-            if FLAGS.is_gcp:
-                download_folder_from_gcs('./glove', 'deid-xcloud/data/glove')
+            if FLAGS.is_gcp or True:
+                #download_folder_from_gcs('./glove', 'deid-xcloud/data/glove')
                 result.append(LargeGloveEmbeddings('./glove'))
             else:
                 result.append(WordEmbeddings('glove'))
@@ -249,7 +249,7 @@ def main(_):
                           tag_dictionary=tag_dictionary,
                           tag_type='ner',
                           use_crf=True)
-
+    import pdb; pdb.set_trace()
     if FLAGS.teacher_dir is not None:
         if FLAGS.is_gcp:
             FLAGS.teacher_dir = temp_indir
