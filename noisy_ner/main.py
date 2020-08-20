@@ -24,6 +24,7 @@ flags.DEFINE_string('dataset', './data/test', 'dataset folder')
 flags.DEFINE_string('teacher_dir', None, 'directory with teacher init ckpt and corpus')
 flags.DEFINE_string('output_dir', './output', 'output directory')
 flags.DEFINE_string('embedding', 'bert', 'embedding type')
+flags.DEFINE_string('bert_layers', '-1,-2,-3,-4', 'bert layers')
 flags.DEFINE_integer('upload_fps', 1, 'update frequency to cloud bucket')
 flags.DEFINE_integer('num_gpu', 1, 'number of gpu')
 flags.DEFINE_integer('train_with_dev', 1, 'train with dev')
@@ -189,10 +190,10 @@ def get_embedding(embedding):
         if embedding == 'char':
             result.append(CustomCharacterEmbeddings()) 
         if embedding == 'bert':
-            result.append(CustomBertEmbeddings())
+            result.append(CustomBertEmbeddings(layers=FLAGS.bert_layers))
         if embedding == 'glove':
-            if FLAGS.is_gcp or True:
-                #download_folder_from_gcs('./glove', 'deid-xcloud/data/glove')
+            if FLAGS.is_gcp:
+                download_folder_from_gcs('./glove', 'deid-xcloud/data/glove')
                 result.append(LargeGloveEmbeddings('./glove'))
             else:
                 result.append(WordEmbeddings('glove'))
@@ -211,7 +212,7 @@ def main(_):
         from custom_tagger import CustomTagger
 
     exp_name = get_exp_name(
-        ['training_ratio', 'epoch', 'embedding', 'number_rnn_layers', 'learning_rate',
+        ['training_ratio', 'epoch', 'embedding', 'bert_layers', 'number_rnn_layers', 'learning_rate',
          'batch_size', 'dropout', 'locked_dropout', 'hidden_size'])
 
     logging.info('Start Exp: {}'.format(exp_name))
@@ -231,7 +232,7 @@ def main(_):
         corpus = load_dataset(temp_indir)
 
     if FLAGS.train_with_dev:
-        corpus.train.sentences = corpus.train.sentences + corpus.train.sentences
+        corpus.train.sentences = corpus.train.sentences + corpus.dev.sentences
         corpus.train.total_sentence_count = len(corpus.train.sentences)
     # TODO (shunl): hack for monitoring, to be removed
     corpus = flair.data.Corpus(corpus.train, corpus.test, corpus.test, name='dataset')
@@ -249,7 +250,7 @@ def main(_):
                           tag_dictionary=tag_dictionary,
                           tag_type='ner',
                           use_crf=True)
-    import pdb; pdb.set_trace()
+    
     if FLAGS.teacher_dir is not None:
         if FLAGS.is_gcp:
             FLAGS.teacher_dir = temp_indir

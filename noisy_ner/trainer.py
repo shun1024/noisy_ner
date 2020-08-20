@@ -82,7 +82,7 @@ class ModelTrainer:
         augment_prob: float = 0.15,
         temperature: float = 1,
         saving_fqs: int = 1,
-        learning_rate_scheduler: str = "step",
+        learning_rate_scheduler: str = "plateau",
         learning_rate: float = 0.1,
         mini_batch_size: int = 32,
         max_epochs: int = 100,
@@ -169,7 +169,7 @@ class ModelTrainer:
         else:
             scheduler: MultiStepLR = MultiStepLR(
                 optimizer,
-                milestones=[10, 20, 30, 40, 50],
+                milestones=[15, 30, 45, 60, 75],
                 gamma=anneal_factor
             )
 

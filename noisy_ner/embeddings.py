@@ -32,7 +32,6 @@ class LargeGloveEmbeddings(WordEmbeddings):
         self.name: str = str(embeddings)
         self.precomputed_word_embeddings = gensim.models.KeyedVectors.load_word2vec_format(embeddings, binary=False)
         self.field = ""
-
         self.__embedding_length: int = self.precomputed_word_embeddings.vector_size
 
     def _add_embeddings_internal(self, sentences: List[Sentence]) -> List[Sentence]:
@@ -43,6 +42,10 @@ class LargeGloveEmbeddings(WordEmbeddings):
                 token.set_embedding(self.name, word_embedding)
 
         return sentences
+    
+    @property
+    def embedding_length(self) -> int:
+        return 300
 
 
 class CaseEmbedding(TokenEmbeddings):
