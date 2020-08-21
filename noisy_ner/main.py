@@ -213,7 +213,7 @@ def main(_):
 
     exp_name = get_exp_name(['training_ratio', 'embedding', 'epoch', 'learning_rate', 'batch_size',
                              'dropout', 'word_dropout', 'locked_dropout', 'unlabel_batch_ratio', 'unlabel_weight',
-                             'augmentation', 'augmentation_strength', 'temperature'])
+                             'update_teacher', 'augmentation', 'augmentation_strength', 'temperature'])
 
     logging.info('Start Exp: {}'.format(exp_name))
 

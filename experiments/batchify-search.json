@@ -1,0 +1,16 @@
+{
+  "gpu_type": "t4",
+  "num_gpu": 1,
+  "exp": "batch-baseline",
+  "dataset": "deid-xcloud/data/i2b2_2014",
+  "output_dir": "xcloud_public_bucket/shunl/results/i2b2_2014/final_baseline",
+  "training_ratio": [0.01, 0.03, 0.1, 0.3],
+  "epoch": [100],
+  "embedding": [ "glove+char"],
+  "number_rnn_layers": [2],
+  "learning_rate": [ 0.3],
+  "batch_size": [ 32],
+  "dropout": [0.2],
+  "locked_dropout": [0, 0.25, 0.5],
+  "hidden_size": [256]
+}

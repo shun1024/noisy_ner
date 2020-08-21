@@ -217,8 +217,48 @@ class ModelTrainer:
                     token_list = list(set(token_list))
                     print('finished reading all tokens')
 
-                self.model.train()
+                def dev_step():
+                    # evaluate on train / dev / test split depending on training settings
+                    result_line: str = ""
+                    self.model.eval()
+                    dev_eval_result, dev_loss = self.model.evaluate(
+                        DataLoader(
+                            self.corpus.dev,
+                            batch_size=mini_batch_size,
+                            num_workers=num_workers,
+                        ),
+                        embedding_storage_mode=embeddings_storage_mode,
+                    )
+                    result_line += f"\t{dev_loss}\t{dev_eval_result.log_line}"
+                    log.info(
+                        f"DEV : loss {dev_loss} - score {dev_eval_result.main_score}"
+                    )
 
+                    
+                    dev_sub_scores = [0, 0, 0] # TODO (shunl): check the evaluation later 
+                    #dev_sub_scores = dev_eval_result.sub_scores
+
+                    log.info(
+                        f"DEV (PHI): F1 {dev_sub_scores[0]} Precision {dev_sub_scores[1]} Recall {dev_sub_scores[2]}"
+                    )
+
+                    current_score = dev_eval_result.main_score
+
+                    # depending on memory mode, embeddings are moved to CPU, GPU or deleted
+                    store_embeddings(self.corpus.dev, embeddings_storage_mode)
+
+                    if self.use_tensorboard:
+                        writer.add_scalar(
+                            "dev/micro_f1", dev_eval_result.main_score, self.epoch
+                        )
+                        writer.add_scalar("dev/loss", dev_loss, self.epoch)
+                        writer.add_scalar("dev/PHI_f1", dev_sub_scores[0], self.epoch)
+                        writer.add_scalar("dev/PHI_precision", dev_sub_scores[1], self.epoch)
+                        writer.add_scalar("dev/PHI_recall", dev_sub_scores[2], self.epoch)
+
+                dev_step()
+
+                self.model.train()
                 train_loss: float = 0
                 unsup_train_loss: float = 0
 
@@ -293,7 +333,7 @@ class ModelTrainer:
                     if unlabel_batch_ratio > 0:
                         writer.add_scalar("train/unsup_train_loss", unsup_train_loss, self.epoch)
 
-                self.model.eval()
+                dev_step()
                 if self.epoch % saving_fqs == 0:
                     log.info("Saving model & corpus to local directory")
                     save_to_ckpt(base_path, self.model, self.corpus, unlabel_data)
@@ -302,41 +342,7 @@ class ModelTrainer:
                         log.info("Uploading model to cloud bucket")
                         gcp_upload_fn(base_path, gcp_dir)
 
-                # evaluate on train / dev / test split depending on training settings
-                result_line: str = ""
 
-                dev_eval_result, dev_loss = self.model.evaluate(
-                    DataLoader(
-                        self.corpus.dev,
-                        batch_size=mini_batch_size,
-                        num_workers=num_workers,
-                    ),
-                    embedding_storage_mode=embeddings_storage_mode,
-                )
-                result_line += f"\t{dev_loss}\t{dev_eval_result.log_line}"
-                log.info(
-                    f"DEV : loss {dev_loss} - score {dev_eval_result.main_score}"
-                )
-
-                dev_sub_scores = dev_eval_result.sub_scores
-
-                log.info(
-                    f"DEV (PHI): F1 {dev_sub_scores[0]} Precision {dev_sub_scores[1]} Recall {dev_sub_scores[2]}"
-                )
-
-                current_score = dev_eval_result.main_score
-
-                # depending on memory mode, embeddings are moved to CPU, GPU or deleted
-                store_embeddings(self.corpus.dev, embeddings_storage_mode)
-
-                if self.use_tensorboard:
-                    writer.add_scalar(
-                        "dev/micro_f1", dev_eval_result.main_score, self.epoch
-                    )
-                    writer.add_scalar("dev/loss", dev_loss, self.epoch)
-                    writer.add_scalar("dev/PHI_f1", dev_sub_scores[0], self.epoch)
-                    writer.add_scalar("dev/PHI_precision", dev_sub_scores[1], self.epoch)
-                    writer.add_scalar("dev/PHI_recall", dev_sub_scores[2], self.epoch)
 
                 # determine learning rate annealing through scheduler
                 if learning_rate_scheduler == "plateau":

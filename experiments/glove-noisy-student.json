@@ -4,7 +4,7 @@
   "exp": "student",
   "dataset": "deid-xcloud/data/i2b2_2014",
   "output_dir": "xcloud_public_bucket/shunl/results/i2b2_2014/noisy_student_iter1",
-  "teacher_dir": ["xcloud_public_bucket/shunl/results/i2b2_2014/final_baseline/"],
+  "teacher_dir": ["xcloud_public_bucket/shunl/results/i2b2_2014/final_baseline/to=0.03,eh=100,eg=glove+char,bs=-1,-2,-3,-4,ns=2,le=0.3,be=32,dt=0.2,lt=0.5,he=256"],
   "embedding": ["glove+char"],
   "training_ratio": [0.03],
   "epoch": [15],
