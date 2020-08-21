@@ -8,9 +8,8 @@ from absl import app
 from absl import flags
 from absl import logging
 
-from torch.utils.data.dataset import ConcatDataset
 import flair, glob, shutil
-from flair.embeddings import CharacterEmbeddings, StackedEmbeddings, WordEmbeddings, FlairEmbeddings
+from flair.embeddings import StackedEmbeddings, WordEmbeddings, FlairEmbeddings
 from flair.data import Sentence
 from flair.datasets import ColumnCorpus
 
@@ -24,7 +23,7 @@ flags.DEFINE_string('dataset', './data/test', 'dataset folder')
 flags.DEFINE_string('teacher_dir', None, 'directory with teacher init ckpt and corpus')
 flags.DEFINE_string('output_dir', './output', 'output directory')
 flags.DEFINE_string('embedding', 'bert', 'embedding type')
-flags.DEFINE_string('bert_layers', '-1,-2,-3,-4', 'bert layers')
+flags.DEFINE_string('bert_layers', '-1', 'bert layers')
 flags.DEFINE_integer('upload_fps', 1, 'update frequency to cloud bucket')
 flags.DEFINE_integer('num_gpu', 1, 'number of gpu')
 flags.DEFINE_integer('train_with_dev', 1, 'train with dev')
@@ -32,12 +31,12 @@ flags.DEFINE_integer('train_with_dev', 1, 'train with dev')
 # Model flags
 flags.DEFINE_integer('number_rnn_layers', 2, 'number of rnn layers')
 flags.DEFINE_integer('hidden_size', 256, 'number of hidden size')
-flags.DEFINE_float('dropout', 0.15, 'overall dropout rate')
+flags.DEFINE_float('dropout', 0.2, 'overall dropout rate')
 flags.DEFINE_float('word_dropout', 0.05, 'word dropout rate')
 flags.DEFINE_float('locked_dropout', 0.5, 'dropout rate for whole embedding')
 
 # Optimization flags
-flags.DEFINE_integer('epoch', 75, 'number of epochs')
+flags.DEFINE_integer('epoch', 100, 'number of epochs')
 flags.DEFINE_enum('optimizer', 'SGD', ['SGD', 'Adam'], 'optimizer')
 flags.DEFINE_float('learning_rate', 0.3, 'learning rate')
 flags.DEFINE_integer('batch_size', 32, 'batch size')
@@ -45,6 +44,7 @@ flags.DEFINE_integer('batch_size', 32, 'batch size')
 # Unlabel flags
 flags.DEFINE_float('training_ratio', 1, 'percentage of label data')
 flags.DEFINE_integer('unlabel_batch_ratio', 0, 'unlabel batch size = ratio * batch size')
+flags.DEFINE_boolean('update_teacher', False, 'whether to update teacher')
 flags.DEFINE_float('unlabel_weight', 1, 'weight for unlabel loss')
 flags.DEFINE_string('augmentation', 'word_replace', 'augmentation methods')
 flags.DEFINE_float('augmentation_strength', 0.15, 'strength for augmentations')
@@ -188,7 +188,7 @@ def get_embedding(embedding):
     result = [CaseEmbedding()]
     for embedding in embeddings:
         if embedding == 'char':
-            result.append(CustomCharacterEmbeddings()) 
+            result.append(CustomCharacterEmbeddings())
         if embedding == 'bert':
             result.append(CustomBertEmbeddings(layers=FLAGS.bert_layers))
         if embedding == 'glove':
@@ -211,9 +211,9 @@ def main(_):
         from trainer import ModelTrainer
         from custom_tagger import CustomTagger
 
-    exp_name = get_exp_name(
-        ['training_ratio', 'epoch', 'embedding', 'bert_layers', 'number_rnn_layers', 'learning_rate',
-         'batch_size', 'dropout', 'locked_dropout', 'hidden_size'])
+    exp_name = get_exp_name(['training_ratio', 'embedding', 'epoch', 'learning_rate', 'batch_size',
+                             'dropout', 'word_dropout', 'locked_dropout', 'unlabel_batch_ratio', 'unlabel_weight',
+                             'augmentation', 'augmentation_strength', 'temperature'])
 
     logging.info('Start Exp: {}'.format(exp_name))
 
@@ -250,7 +250,7 @@ def main(_):
                           tag_dictionary=tag_dictionary,
                           tag_type='ner',
                           use_crf=True)
-    
+
     if FLAGS.teacher_dir is not None:
         if FLAGS.is_gcp:
             FLAGS.teacher_dir = temp_indir
@@ -272,6 +272,7 @@ def main(_):
                   mini_batch_size=FLAGS.batch_size,
                   max_epochs=FLAGS.epoch,
                   saving_fqs=FLAGS.upload_fps,
+                  update_teacher=FLAGS.update_teacher,
                   embeddings_storage_mode='none')
 
     logging.info('Finished !!!')

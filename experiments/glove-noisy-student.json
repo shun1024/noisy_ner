@@ -5,7 +5,7 @@
   "dataset": "deid-xcloud/data/i2b2_2014",
   "output_dir": "xcloud_public_bucket/shunl/results/i2b2_2014/noisy_student_iter1",
   "teacher_dir": ["xcloud_public_bucket/shunl/results/i2b2_2014/final_baseline/"],
-  "embedding": ["bert+char"],
+  "embedding": ["glove+char"],
   "training_ratio": [0.03],
   "epoch": [15],
   "learning_rate": [0.3, 0.1],

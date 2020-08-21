@@ -81,6 +81,7 @@ class ModelTrainer:
         augment_method: str = 'word_replace',
         augment_prob: float = 0.15,
         temperature: float = 1,
+        update_teacher: bool = False,
         saving_fqs: int = 1,
         learning_rate_scheduler: str = "plateau",
         learning_rate: float = 0.1,
@@ -360,6 +361,11 @@ class ModelTrainer:
                 if current_score > best_score:
                     best_score = current_score
                     self.best_model = copy.deepcopy(self.model)
+                    if update_teacher:
+                        log.info(f"UPDATE TEACHER")
+                        self.teacher = copy.deepcopy(self.model)
+                        self.teacher.eval()
+
         except KeyboardInterrupt:
             log_line(log)
             log.info("Exiting from training early.")
