@@ -10,9 +10,26 @@ import gensim
 
 from flair.data import Sentence
 from flair.embeddings.token import TokenEmbeddings
+from flair.embeddings import StackedEmbeddings
 from flair.embeddings import WordEmbeddings, CharacterEmbeddings, BertEmbeddings
 
 log = logging.getLogger("flair")
+
+
+def get_embedding(embedding):
+    embeddings = embedding.split('+')
+    result = [CaseEmbedding()]
+    for embedding in embeddings:
+        if embedding == 'char':
+            result.append(CustomCharacterEmbeddings())
+        if embedding == 'bert':
+            result.append(CustomBertEmbeddings(layers="-1"))
+        if embedding == 'glove':
+            result.append(WordEmbeddings('glove'))
+        if embedding == 'large_glove':
+            result.append(LargeGloveEmbeddings('./glove'))
+
+    return StackedEmbeddings(embeddings=result)
 
 
 class LargeGloveEmbeddings(WordEmbeddings):
@@ -24,14 +41,14 @@ class LargeGloveEmbeddings(WordEmbeddings):
         """
         super().__init__('glove')
         embeddings = '840b-300d-glove'
+        self.field = ""
         self.embeddings = embeddings
         self.static_embeddings = True
 
-        # GLOVE embeddings
+        # Large Glove embeddings
         embeddings = os.path.join(glove_dir, 'gensim.glove.840B.300d.txt')
         self.name: str = str(embeddings)
         self.precomputed_word_embeddings = gensim.models.KeyedVectors.load_word2vec_format(embeddings, binary=False)
-        self.field = ""
         self.__embedding_length: int = self.precomputed_word_embeddings.vector_size
 
     def _add_embeddings_internal(self, sentences: List[Sentence]) -> List[Sentence]:
@@ -42,14 +59,14 @@ class LargeGloveEmbeddings(WordEmbeddings):
                 token.set_embedding(self.name, word_embedding)
 
         return sentences
-    
+
     @property
     def embedding_length(self) -> int:
         return 300
 
 
 class CaseEmbedding(TokenEmbeddings):
-    """Static Case Embedding 1 - Upper / 0 - Lower."""
+    """Static Case Embedding"""
 
     def __init__(self):
         self.name: str = 'case-embedding-shun'
@@ -83,7 +100,7 @@ class CaseEmbedding(TokenEmbeddings):
 
 
 class CustomCharacterEmbeddings(CharacterEmbeddings):
-    # batchify the character embeddings
+    """Batched-version of CharacterEmbeddings. """
 
     def _add_embeddings_internal(self, sentences: List[Sentence]):
 
@@ -156,6 +173,7 @@ class CustomCharacterEmbeddings(CharacterEmbeddings):
 
 
 class CustomBertEmbeddings(BertEmbeddings):
+    """Lower-Cased BertEmbeddings. """
 
     def _convert_sentences_to_features(
         self, sentences, max_sequence_length: int

@@ -1,20 +1,12 @@
 from pathlib import Path
 from typing import Union
-import time
-import datetime
-import copy
-
-import torch
-from torch.optim.lr_scheduler import ReduceLROnPlateau, MultiStepLR
-from torch.optim.sgd import SGD
+import copy, os, pickle, time, logging
 
 import flair
 import flair.nn
 from flair.data import MultiCorpus, Corpus
 from flair.datasets import DataLoader
-from flair.optim import ExpAnnealLR
 from flair.training_utils import (
-    init_output_file,
     log_line,
     add_file_handler,
     Result,
@@ -22,12 +14,13 @@ from flair.training_utils import (
 )
 from flair.models import SequenceTagger
 
+import torch
+from torch.optim.lr_scheduler import ReduceLROnPlateau, MultiStepLR
+from torch.optim.sgd import SGD
 from torch.utils.tensorboard import SummaryWriter
 
-import os
-import pickle
-
-import logging
+from noisy_ner.augmentations import augment
+from noisy_ner.utils import upload_folder_to_gcs
 
 log = logging.getLogger("flair")
 
@@ -75,7 +68,6 @@ class ModelTrainer:
         unlabel_data: flair.datasets.ColumnDataset,
         is_gcp: bool = False,
         gcp_dir: str = "",
-        gcp_upload_fn=None,
         unlabel_batch_ratio: int = 0,
         unlabel_weight: float = 0,
         augment_method: str = 'word_replace',
@@ -117,11 +109,6 @@ class ModelTrainer:
         :param kwargs: Other arguments for the Optimizer
         :return:
         """
-
-        if is_gcp:
-            from noisy_ner.augmentations import augment
-        else:
-            from augmentations import augment
 
         if self.use_tensorboard:
             writer = SummaryWriter(base_path)
@@ -217,6 +204,82 @@ class ModelTrainer:
                     token_list = list(set(token_list))
                     print('finished reading all tokens')
 
+                def train_step():
+                    self.model.train()
+                    train_loss: float = 0
+                    unsup_train_loss: float = 0
+
+                    seen_batches = 0
+                    total_number_of_batches = len(batch_loader)
+
+                    modulo = max(1, int(total_number_of_batches / 10))
+
+                    # process mini-batches
+                    batch_time = 0
+                    for batch_no, batch in enumerate(batch_loader):
+                        start_time = time.time()
+
+                        # zero the gradients on the model and optimizer
+                        torch.cuda.empty_cache()
+                        self.model.zero_grad()
+                        optimizer.zero_grad()
+
+                        # forward pass
+                        loss = self.model._calculate_loss(self.model.forward(batch), batch)
+                        loss.backward()
+
+                        # teacher loss
+                        if unlabel_batch_ratio > 0:
+                            # calculate the unlabel loss
+                            # if necessary, make batch_steps
+                            unbatch_ori_batch = next(iter(unlabel_batch_loader))
+                            teacher_output = self.teacher.forward(unbatch_ori_batch).detach()
+                            teacher_prob = torch.nn.functional.softmax(teacher_output / temperature, -1)
+
+                            unbatch_aug_batch = augment(unbatch_ori_batch, token_list, augment_method, augment_prob)
+                            student_output = self.model.forward(unbatch_aug_batch)
+
+                            # forward pass
+                            unlabel_loss = unlabel_weight * torch.mean(
+                                torch.sum(- teacher_prob * torch.nn.functional.log_softmax(student_output, -1), -1))
+                            unlabel_loss.backward()
+
+                        # do the optimizer step
+                        torch.nn.utils.clip_grad_norm_(self.model.parameters(), 5.0)
+                        optimizer.step()
+
+                        seen_batches += 1
+                        train_loss += loss.item()
+                        if unlabel_batch_ratio > 0:
+                            unsup_train_loss += unlabel_loss.item() * unlabel_weight
+                            store_embeddings(unbatch_ori_batch, embeddings_storage_mode)
+
+                        # depending on memory mode, embeddings are moved to CPU, GPU or deleted
+                        store_embeddings(batch, embeddings_storage_mode)
+                        batch_time += time.time() - start_time
+                        if seen_batches % modulo == 0:
+                            log.info(
+                                f"epoch {self.epoch} - iter {seen_batches}/{total_number_of_batches} - loss "
+                                f"{train_loss / seen_batches:.4f} - unlabel_loss {unsup_train_loss / seen_batches:.4f}"
+                                f" - samples/sec: {mini_batch_size * modulo / batch_time:.2f}"
+                            )
+                            batch_time = 0
+
+                    train_loss /= seen_batches
+                    if unlabel_batch_ratio > 0:
+                        unsup_train_loss /= seen_batches
+
+                    log_line(log)
+                    log.info(
+                        f"EPOCH {self.epoch} done: loss {train_loss:.4f} - unsup {unsup_train_loss:.4f} - lr {learning_rate:.4f}"
+                    )
+
+                    if self.use_tensorboard:
+                        writer.add_scalar("train/loss", train_loss, self.epoch)
+                        writer.add_scalar("train/learning_rate", learning_rate, self.epoch)
+                        if unlabel_batch_ratio > 0:
+                            writer.add_scalar("train/unsup_train_loss", unsup_train_loss, self.epoch)
+
                 def dev_step():
                     # evaluate on train / dev / test split depending on training settings
                     result_line: str = ""
@@ -234,14 +297,6 @@ class ModelTrainer:
                         f"DEV : loss {dev_loss} - score {dev_eval_result.main_score}"
                     )
 
-                    
-                    dev_sub_scores = [0, 0, 0] # TODO (shunl): check the evaluation later 
-                    #dev_sub_scores = dev_eval_result.sub_scores
-
-                    log.info(
-                        f"DEV (PHI): F1 {dev_sub_scores[0]} Precision {dev_sub_scores[1]} Recall {dev_sub_scores[2]}"
-                    )
-
                     current_score = dev_eval_result.main_score
 
                     # depending on memory mode, embeddings are moved to CPU, GPU or deleted
@@ -252,97 +307,19 @@ class ModelTrainer:
                             "dev/micro_f1", dev_eval_result.main_score, self.epoch
                         )
                         writer.add_scalar("dev/loss", dev_loss, self.epoch)
-                        writer.add_scalar("dev/PHI_f1", dev_sub_scores[0], self.epoch)
-                        writer.add_scalar("dev/PHI_precision", dev_sub_scores[1], self.epoch)
-                        writer.add_scalar("dev/PHI_recall", dev_sub_scores[2], self.epoch)
 
-                dev_step()
+                    if self.epoch % saving_fqs == 0:
+                        log.info("Saving model & corpus to local directory")
+                        save_to_ckpt(base_path, self.model, self.corpus, unlabel_data)
 
-                self.model.train()
-                train_loss: float = 0
-                unsup_train_loss: float = 0
+                        if is_gcp:
+                            log.info("Uploading model to cloud bucket")
+                            upload_folder_to_gcs(base_path, gcp_dir)
 
-                seen_batches = 0
-                total_number_of_batches = len(batch_loader)
+                    return current_score
 
-                modulo = max(1, int(total_number_of_batches / 10))
-
-                # process mini-batches
-                batch_time = 0
-                for batch_no, batch in enumerate(batch_loader):
-                    start_time = time.time()
-
-                    # zero the gradients on the model and optimizer
-                    torch.cuda.empty_cache()
-                    self.model.zero_grad()
-                    optimizer.zero_grad()
-
-                    # forward pass
-                    loss = self.model._calculate_loss(self.model.forward(batch), batch)
-                    loss.backward()
-
-                    # teacher loss
-                    if unlabel_batch_ratio > 0:
-                        # calculate the unlabel loss
-                        # if necessary, make batch_steps
-                        unbatch_ori_batch = next(iter(unlabel_batch_loader))
-                        teacher_output = self.teacher.forward(unbatch_ori_batch).detach()
-                        teacher_prob = torch.nn.functional.softmax(teacher_output / temperature, -1)
-
-                        unbatch_aug_batch = augment(unbatch_ori_batch, token_list, augment_method, augment_prob)
-                        student_output = self.model.forward(unbatch_aug_batch)
-
-                        # forward pass
-                        unlabel_loss = unlabel_weight * torch.mean(
-                            torch.sum(- teacher_prob * torch.nn.functional.log_softmax(student_output, -1), -1))
-                        unlabel_loss.backward()
-
-                    # do the optimizer step
-                    torch.nn.utils.clip_grad_norm_(self.model.parameters(), 5.0)
-                    optimizer.step()
-
-                    seen_batches += 1
-                    train_loss += loss.item()
-                    if unlabel_batch_ratio > 0:
-                        unsup_train_loss += unlabel_loss.item() * unlabel_weight
-                        store_embeddings(unbatch_ori_batch, embeddings_storage_mode)
-
-                    # depending on memory mode, embeddings are moved to CPU, GPU or deleted
-                    store_embeddings(batch, embeddings_storage_mode)
-                    batch_time += time.time() - start_time
-                    if seen_batches % modulo == 0:
-                        log.info(
-                            f"epoch {self.epoch} - iter {seen_batches}/{total_number_of_batches} - loss "
-                            f"{train_loss / seen_batches:.4f} - unlabel_loss {unsup_train_loss / seen_batches:.4f}"
-                            f" - samples/sec: {mini_batch_size * modulo / batch_time:.2f}"
-                        )
-                        batch_time = 0
-
-                train_loss /= seen_batches
-                if unlabel_batch_ratio > 0:
-                    unsup_train_loss /= seen_batches
-
-                log_line(log)
-                log.info(
-                    f"EPOCH {self.epoch} done: loss {train_loss:.4f} - unsup {unsup_train_loss:.4f} - lr {learning_rate:.4f}"
-                )
-
-                if self.use_tensorboard:
-                    writer.add_scalar("train/loss", train_loss, self.epoch)
-                    writer.add_scalar("train/learning_rate", learning_rate, self.epoch)
-                    if unlabel_batch_ratio > 0:
-                        writer.add_scalar("train/unsup_train_loss", unsup_train_loss, self.epoch)
-
-                dev_step()
-                if self.epoch % saving_fqs == 0:
-                    log.info("Saving model & corpus to local directory")
-                    save_to_ckpt(base_path, self.model, self.corpus, unlabel_data)
-
-                    if is_gcp:
-                        log.info("Uploading model to cloud bucket")
-                        gcp_upload_fn(base_path, gcp_dir)
-
-
+                current_score = dev_step()
+                train_step()
 
                 # determine learning rate annealing through scheduler
                 if learning_rate_scheduler == "plateau":

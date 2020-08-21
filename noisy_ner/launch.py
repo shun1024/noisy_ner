@@ -20,7 +20,7 @@ def main(_):
         memory=32,
         accelerator=xm.GPU('nvidia-tesla-' + json_args['gpu_type'].lower(), json_args['num_gpu']),
     )
-    
+
     executable = xm.CloudPython(
         name='noisy-ner-{}'.format(json_args['exp']),
         runtime=runtime,
@@ -30,8 +30,8 @@ def main(_):
             'is_gcp': True,
             'dataset': json_args['dataset'],
             'output_dir': json_args['output_dir'],
-            }
-        )
+        }
+    )
 
     remove_json_args = ['gpu_type', 'num_gpu', 'exp', 'dataset', 'output_dir']
     json_args['output_dir'] = os.path.join(json_args['output_dir'], str(int(time.time())))
