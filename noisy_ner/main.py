@@ -80,7 +80,7 @@ def main(_):
     logging.info('Start Exp: {}'.format(exp_name))
 
     if FLAGS.is_gcp:
-        temp_indir, temp_outdir = prepare_temp_dir(FLAGS.dataset)
+        temp_indir, temp_outdir = prepare_temp_dir(FLAGS.dataset, FLAGS.teacher_dir)
     else:
         temp_indir, temp_outdir = FLAGS.dataset, os.path.join(FLAGS.output_dir, exp_name)
 
