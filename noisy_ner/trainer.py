@@ -321,6 +321,7 @@ class ModelTrainer:
 
                 current_score = dev_step()
                 for i in range(train_step_ratio):
+                    self.epoch += 1
                     train_step()
 
                 # determine learning rate annealing through scheduler
