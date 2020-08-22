@@ -80,6 +80,7 @@ class ModelTrainer:
         mini_batch_size: int = 32,
         max_epochs: int = 100,
         anneal_factor: float = 0.5,
+        train_step_ratio: int = 5,
         patience: int = 2,
         min_learning_rate: float = 0.0001,
         embeddings_storage_mode: str = "cpu",
@@ -319,7 +320,8 @@ class ModelTrainer:
                     return current_score
 
                 current_score = dev_step()
-                train_step()
+                for i in range(train_step_ratio):
+                    train_step()
 
                 # determine learning rate annealing through scheduler
                 if learning_rate_scheduler == "plateau":

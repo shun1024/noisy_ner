@@ -25,8 +25,6 @@ def get_embedding(embedding):
         if embedding == 'bert':
             result.append(CustomBertEmbeddings(layers="-1"))
         if embedding == 'glove':
-            result.append(WordEmbeddings('glove'))
-        if embedding == 'large_glove':
             result.append(LargeGloveEmbeddings('./glove'))
 
     return StackedEmbeddings(embeddings=result)
@@ -46,9 +44,9 @@ class LargeGloveEmbeddings(WordEmbeddings):
         self.static_embeddings = True
 
         # Large Glove embeddings
-        embeddings = os.path.join(glove_dir, 'gensim.glove.840B.300d.txt')
+        embeddings = os.path.join(glove_dir, 'glove.bin')
         self.name: str = str(embeddings)
-        self.precomputed_word_embeddings = gensim.models.KeyedVectors.load_word2vec_format(embeddings, binary=False)
+        self.precomputed_word_embeddings = gensim.models.KeyedVectors.load(embeddings)
         self.__embedding_length: int = self.precomputed_word_embeddings.vector_size
 
     def _add_embeddings_internal(self, sentences: List[Sentence]) -> List[Sentence]:
