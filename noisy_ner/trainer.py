@@ -319,10 +319,11 @@ class ModelTrainer:
 
                     return current_score
 
-                current_score = dev_step()
+                current_score = 100 #dev_step()
+                train_step_ratio = 1
                 for i in range(train_step_ratio):
-                    self.epoch += 1
                     train_step()
+                    self.epoch += 1
 
                 # determine learning rate annealing through scheduler
                 if learning_rate_scheduler == "plateau":
@@ -345,11 +346,12 @@ class ModelTrainer:
 
                 # if we use dev data, remember best model based on dev evaluation score
                 if current_score > best_score:
+                    self.model.eval()
                     best_score = current_score
-                    self.best_model = copy.deepcopy(self.model)
+                    self.best_model = pickle.loads(pickle.dumps(self.model))
                     if update_teacher:
                         log.info(f"UPDATE TEACHER")
-                        self.teacher = copy.deepcopy(self.model)
+                        self.teacher = pickle.loads(pickle.dumps(self.model))
                         self.teacher.eval()
 
         except KeyboardInterrupt:
