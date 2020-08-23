@@ -167,7 +167,8 @@ class ModelTrainer:
         # At any point you can hit Ctrl + C to break out of training early.
         try:
             best_score = 0
-            for self.epoch in range(self.epoch + 1, max_epochs + 1):
+            self.epoch = 0
+            while self.epoch < max_epochs:
                 log_line(log)
 
                 # get new learning rate
@@ -302,7 +303,6 @@ class ModelTrainer:
 
                     # depending on memory mode, embeddings are moved to CPU, GPU or deleted
                     store_embeddings(self.corpus.dev, embeddings_storage_mode)
-
                     if self.use_tensorboard:
                         writer.add_scalar(
                             "dev/micro_f1", dev_eval_result.main_score, self.epoch
@@ -319,8 +319,7 @@ class ModelTrainer:
 
                     return current_score
 
-                current_score = 100 #dev_step()
-                train_step_ratio = 1
+                current_score = dev_step()
                 for i in range(train_step_ratio):
                     train_step()
                     self.epoch += 1
