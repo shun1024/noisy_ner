@@ -12,18 +12,19 @@ from flair.data import Sentence
 from flair.embeddings.token import TokenEmbeddings
 from flair.embeddings import StackedEmbeddings
 from flair.embeddings import WordEmbeddings, CharacterEmbeddings, BertEmbeddings
+from flair.embeddings.base import ScalarMix
 
 log = logging.getLogger("flair")
 
 
-def get_embedding(embedding):
+def get_embedding(embedding, finetune_bert=False):
     embeddings = embedding.split('+')
     result = [CaseEmbedding()]
     for embedding in embeddings:
         if embedding == 'char':
             result.append(CustomCharacterEmbeddings())
         if embedding == 'bert':
-            result.append(CustomBertEmbeddings(layers="-1"))
+            result.append(CustomBertEmbeddings(layers="-1", finetune_bert=finetune_bert))
         if embedding == 'glove':
             result.append(LargeGloveEmbeddings('./glove'))
 
@@ -173,6 +174,19 @@ class CustomCharacterEmbeddings(CharacterEmbeddings):
 class CustomBertEmbeddings(BertEmbeddings):
     """Lower-Cased BertEmbeddings. """
 
+    def __init__(
+        self,
+        bert_model_or_path: str = "bert-base-uncased",
+        layers: str = "-1,-2,-3,-4",
+        pooling_operation: str = "first",
+        use_scalar_mix: bool = False,
+        finetune_bert: bool = False,
+    ):
+        super().__init__(bert_model_or_path=bert_model_or_path, layers=layers, pooling_operation=pooling_operation,
+                         use_scalar_mix=use_scalar_mix)
+
+        self.finetune_bert = finetune_bert
+
     def _convert_sentences_to_features(
         self, sentences, max_sequence_length: int
     ) -> [BertEmbeddings.BertInputFeatures]:
@@ -231,3 +245,90 @@ class CustomBertEmbeddings(BertEmbeddings):
             )
 
         return features
+
+    def _add_embeddings_internal(self, sentences: List[Sentence]) -> List[Sentence]:
+        """Add embeddings to all words in a list of sentences. If embeddings are already added,
+        updates only if embeddings are non-static."""
+
+        # first, find longest sentence in batch
+        longest_sentence_in_batch: int = len(
+            max(
+                [
+                    self.tokenizer.tokenize(sentence.to_tokenized_string())
+                    for sentence in sentences
+                ],
+                key=len,
+            )
+        )
+
+        # prepare id maps for BERT model
+        features = self._convert_sentences_to_features(
+            sentences, longest_sentence_in_batch
+        )
+        all_input_ids = torch.LongTensor([f.input_ids for f in features]).to(
+            flair.device
+        )
+        all_input_masks = torch.LongTensor([f.input_mask for f in features]).to(
+            flair.device
+        )
+
+        # put encoded batch through BERT model to get all hidden states of all encoder layers
+        self.model.to(flair.device)
+        self.model.eval()
+        all_encoder_layers = self.model(all_input_ids, attention_mask=all_input_masks)[
+            -1
+        ]
+
+        def add_embedding_to_features():
+            for sentence_index, sentence in enumerate(sentences):
+
+                feature = features[sentence_index]
+
+                # get aggregated embeddings for each BERT-subtoken in sentence
+                subtoken_embeddings = []
+                for token_index, _ in enumerate(feature.tokens):
+                    all_layers = []
+                    for layer_index in self.layer_indexes:
+                        layer_output = all_encoder_layers[int(layer_index)][
+                            sentence_index
+                        ]
+                        all_layers.append(layer_output[token_index])
+
+                    if self.use_scalar_mix:
+                        sm = ScalarMix(mixture_size=len(all_layers))
+                        sm_embeddings = sm(all_layers)
+                        all_layers = [sm_embeddings]
+
+                    subtoken_embeddings.append(torch.cat(all_layers))
+
+                # get the current sentence object
+                token_idx = 0
+                for token in sentence:
+                    # add concatenated embedding to sentence
+                    token_idx += 1
+
+                    if self.pooling_operation == "first":
+                        # use first subword embedding if pooling operation is 'first'
+                        token.set_embedding(self.name, subtoken_embeddings[token_idx])
+                    else:
+                        # otherwise, do a mean over all subwords in token
+                        embeddings = subtoken_embeddings[
+                                     token_idx: token_idx
+                                                + feature.token_subtoken_count[token.idx]
+                                     ]
+                        embeddings = [
+                            embedding.unsqueeze(0) for embedding in embeddings
+                        ]
+                        mean = torch.mean(torch.cat(embeddings, dim=0), dim=0)
+                        token.set_embedding(self.name, mean)
+
+                    token_idx += feature.token_subtoken_count[token.idx] - 1
+
+            return sentences
+
+        if self.finetune_bert:
+            sentences = add_embedding_to_features()
+        else:
+            with torch.no_grad():
+                sentences = add_embedding_to_features()
+        return sentences

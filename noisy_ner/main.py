@@ -21,7 +21,10 @@ flags.DEFINE_boolean('is_gcp', False, 'whether run on GCP')
 flags.DEFINE_string('dataset', './data/test', 'dataset folder')
 flags.DEFINE_string('teacher_dir', None, 'directory with teacher init ckpt and corpus')
 flags.DEFINE_string('output_dir', './output', 'output directory')
+flags.DEFINE_string('exp', 'test', 'output directory')
 flags.DEFINE_string('embedding', 'bert', 'embedding type')
+flags.DEFINE_boolean('train_from_scratch', False, 'whether to train student from scratch')
+flags.DEFINE_boolean('finetune_bert', False, 'whether to adjust bert')
 flags.DEFINE_integer('train_with_dev', 1, 'train with dev')
 
 # Model flags
@@ -47,15 +50,6 @@ flags.DEFINE_float('augmentation_strength', 0.15, 'strength for augmentations')
 flags.DEFINE_float('temperature', 1, 'temperature for teacher model')
 
 
-def get_exp_name(names):
-    exp_name = []
-    for name in names:
-        short_name = name[0] + name[-1]
-        value = getattr(FLAGS, name)
-        exp_name.append('{}={}'.format(short_name, value))
-    return ','.join(exp_name)
-
-
 def load_dataset(dataset_folder):
     if 'conll_03' in dataset_folder:
         temp_conll_dir = os.path.join(dataset_folder, 'conll_03')
@@ -73,10 +67,7 @@ def load_dataset(dataset_folder):
 
 
 def main(_):
-    exp_name = get_exp_name(['training_ratio', 'embedding', 'epoch', 'learning_rate', 'batch_size',
-                             'dropout', 'word_dropout', 'locked_dropout', 'unlabel_batch_ratio', 'unlabel_weight',
-                             'update_teacher', 'augmentation', 'augmentation_strength', 'temperature'])
-
+    exp_name = FLAGS.exp
     logging.info('Start Exp: {}'.format(exp_name))
 
     if FLAGS.is_gcp:
@@ -95,7 +86,7 @@ def main(_):
     corpus, unlabel_data = remove_labels(corpus, FLAGS.training_ratio)
     corpus, unlabel_data = normalize_corpus(corpus, unlabel_data)
     tag_dictionary = corpus.make_tag_dictionary(tag_type='ner')
-    embeddings = get_embedding(FLAGS.embedding)
+    embeddings = get_embedding(FLAGS.embedding, finetune_bert=FLAGS.finetune_bert)
     tagger = CustomTagger(hidden_size=FLAGS.hidden_size,
                           dropout=FLAGS.dropout,
                           word_dropout=FLAGS.word_dropout,
@@ -112,6 +103,7 @@ def main(_):
         tagger, corpus, unlabel_data = init_from_ckpt(FLAGS.teacher_dir, tagger)
 
     trainer = ModelTrainer(tagger, corpus, use_tensorboard=True)
+    train_step_ratio = max(5, int(1 / FLAGS.training_ratio))
 
     trainer.train(temp_outdir,
                   is_gcp=FLAGS.is_gcp,
@@ -122,7 +114,9 @@ def main(_):
                   augment_prob=FLAGS.augmentation_strength,
                   augment_method=FLAGS.augmentation,
                   temperature=FLAGS.temperature,
+                  train_step_ratio=train_step_ratio,
                   learning_rate=FLAGS.learning_rate,
+                  train_from_scratch=FLAGS.train_from_scratch,
                   mini_batch_size=FLAGS.batch_size,
                   max_epochs=FLAGS.epoch,
                   update_teacher=FLAGS.update_teacher,

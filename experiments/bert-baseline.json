@@ -1,0 +1,15 @@
+{
+  "gpu_type": "t4",
+  "num_gpu": 1,
+  "exp": "bert-baseline",
+  "dataset": "deid-xcloud/data/i2b2_2014",
+  "output_dir": "xcloud_public_bucket/shunl/results/i2b2_2014/baseline",
+  "training_ratio": [1.0],
+  "epoch": [100],
+  "embedding": ["bert+char"],
+  "number_rnn_layers": [2],
+  "learning_rate": [0.1, 0.3],
+  "batch_size": [16, 32],
+  "dropout": [0.2, 0.5],
+  "finetune_bert": [true, false]
+}

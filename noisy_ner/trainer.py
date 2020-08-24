@@ -74,8 +74,8 @@ class ModelTrainer:
         augment_prob: float = 0.15,
         temperature: float = 1,
         update_teacher: bool = False,
+        train_from_scratch: bool = False,
         saving_fqs: int = 1,
-        learning_rate_scheduler: str = "plateau",
         learning_rate: float = 0.1,
         mini_batch_size: int = 32,
         max_epochs: int = 100,
@@ -110,6 +110,12 @@ class ModelTrainer:
         :param kwargs: Other arguments for the Optimizer
         :return:
         """
+
+        if train_from_scratch:
+            log.info('Resetting the model')
+            for layer in self.model.children():
+                if hasattr(layer, 'reset_parameters'):
+                    layer.reset_parameters()
 
         if self.use_tensorboard:
             writer = SummaryWriter(base_path)
@@ -146,21 +152,14 @@ class ModelTrainer:
             self.model.parameters(), lr=learning_rate, **kwargs
         )
 
-        if learning_rate_scheduler == "plateau":
-            anneal_mode = "max"
-            scheduler: ReduceLROnPlateau = ReduceLROnPlateau(
-                optimizer,
-                factor=anneal_factor,
-                patience=patience,
-                mode=anneal_mode,
-                verbose=True,
-            )
-        else:
-            scheduler: MultiStepLR = MultiStepLR(
-                optimizer,
-                milestones=[15, 30, 45, 60, 75],
-                gamma=anneal_factor
-            )
+        anneal_mode = "max"
+        scheduler: ReduceLROnPlateau = ReduceLROnPlateau(
+            optimizer,
+            factor=anneal_factor,
+            patience=patience,
+            mode=anneal_mode,
+            verbose=True,
+        )
 
         train_data = self.corpus.train
 
@@ -325,10 +324,7 @@ class ModelTrainer:
                     self.epoch += 1
 
                 # determine learning rate annealing through scheduler
-                if learning_rate_scheduler == "plateau":
-                    scheduler.step(current_score)
-                else:
-                    scheduler.step()
+                scheduler.step(current_score)
 
                 # determine bad epoch number
                 try:

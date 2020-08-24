@@ -12,6 +12,32 @@ FLAGS = flags.FLAGS
 flags.DEFINE_string('json', None, 'json store experiment hyper-parameters')
 
 
+def get_exp_name(parameter):
+    exp_name = []
+    for key in parameter:
+        short_name = key[0] + key[-1]
+        exp_name.append('{}={}'.format(short_name, parameter[key]))
+    return ','.join(exp_name)
+
+
+def add_exp_name(parameters):
+    for parameter in parameters:
+        exp_name = get_exp_name(parameter)
+        parameter['exp'] = exp_name
+    return parameters
+
+
+def check_compatibility(parameters):
+    result = []
+    for parameter in parameters:
+        if 'teacher_dir' in parameter:
+            teacher_to = parameter['teacher_dir'].split('=')[0].split(',')[0]
+            if float(teacher_to) != parameter['training_ratio']:
+                continue
+        result.append(parameter)
+    return result
+
+
 def main(_):
     json_args = json.load(open(FLAGS.json, 'r'))
 
@@ -40,9 +66,11 @@ def main(_):
         if key not in remove_json_args:
             parameters.append(hyper.sweep(key, json_args[key]))
     parameters = hyper.product(parameters)
+    parameters = add_exp_name(parameters)
+    parameters = check_compatibility(parameters)
     exploration = xm.ParameterSweep(
         executable, parameters, max_parallel_work_units=200)
-    xm.launch(xm.ExperimentDescription('noisy-ner-{}'.format(json_args['exp'])), exploration)
+    xm.launch(xm.ExperimentDescription('{}'.format(json_args['exp'])), exploration)
 
 
 if __name__ == '__main__':

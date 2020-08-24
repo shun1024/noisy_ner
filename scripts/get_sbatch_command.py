@@ -2,10 +2,11 @@ import os, sys
 import json, itertools
 
 memory = 32
-gpu = 8 
+gpu = 8
 
 json_file = sys.argv[1]
 is_local = sys.argv[2]
+
 
 def dict_product(dicts):
     return (dict(zip(dicts, x)) for x in itertools.product(*dicts.values()))
@@ -21,7 +22,7 @@ def convert_json_to_command():
         for key in list(data):
             if key in non_special_parameter:
                 del data[key]
-        
+
         parameters = dict_product(data)
         for parameter in parameters:
             post_command = []
@@ -34,11 +35,12 @@ def convert_json_to_command():
             commands.append('"%s"' % command)
     return commands
 
+
 lines = convert_json_to_command()
 if int(is_local):
     commands = []
     for i in range(len(lines)):
-        commands.append('CUDA_VISIBLE_DEVICES={} {} &'.format(i%gpu, lines[i].strip('"')))
+        commands.append('CUDA_VISIBLE_DEVICES={} {} &'.format(i % gpu, lines[i].strip('"')))
     print('\n'.join(commands))
 
 else:
