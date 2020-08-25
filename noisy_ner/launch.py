@@ -13,8 +13,11 @@ flags.DEFINE_string('json', None, 'json store experiment hyper-parameters')
 
 
 def get_exp_name(parameter):
+    non_add_name = ['teacher_dir']
     exp_name = []
     for key in parameter:
+        if key in non_add_name:
+            continue
         short_name = key[0] + key[-1]
         exp_name.append('{}={}'.format(short_name, parameter[key]))
     return ','.join(exp_name)
@@ -31,7 +34,7 @@ def check_compatibility(parameters):
     result = []
     for parameter in parameters:
         if 'teacher_dir' in parameter:
-            teacher_to = parameter['teacher_dir'].split('=')[0].split(',')[0]
+            teacher_to = parameter['teacher_dir'].split('=')[1].split(',')[0]
             if float(teacher_to) != parameter['training_ratio']:
                 continue
         result.append(parameter)
@@ -66,6 +69,7 @@ def main(_):
         if key not in remove_json_args:
             parameters.append(hyper.sweep(key, json_args[key]))
     parameters = hyper.product(parameters)
+    parameters = [p for p in parameters]
     parameters = add_exp_name(parameters)
     parameters = check_compatibility(parameters)
     exploration = xm.ParameterSweep(
