@@ -86,10 +86,10 @@ def main(_):
             temp_out_indir = FLAGS.out_dataset
         out_corpus = load_dataset(temp_out_indir)
 
+    # TODO (shunl): hack for monitoring, to be removed
     if FLAGS.train_with_dev:
         corpus.train.sentences = corpus.train.sentences + corpus.dev.sentences
         corpus.train.total_sentence_count = len(corpus.train.sentences)
-    # TODO (shunl): hack for monitoring, to be removed
     corpus = flair.data.Corpus(corpus.train, corpus.test, corpus.test, name='dataset')
 
     corpus, unlabel_data = remove_labels(corpus, FLAGS.training_ratio)
