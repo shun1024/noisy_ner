@@ -103,7 +103,7 @@ def main(_):
         tagger, corpus, unlabel_data = init_from_ckpt(FLAGS.teacher_dir, tagger)
 
     trainer = ModelTrainer(tagger, corpus, use_tensorboard=True)
-    train_step_ratio = max(5, int(1 / FLAGS.training_ratio))
+    train_step_ratio = min(15, max(3, int(1 / FLAGS.training_ratio)))
 
     trainer.train(temp_outdir,
                   is_gcp=FLAGS.is_gcp,
