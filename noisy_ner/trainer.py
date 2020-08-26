@@ -1,21 +1,22 @@
 from pathlib import Path
-from typing import Union
+from typing import Union, List
 import copy, os, pickle, time, logging
 
 import flair
 import flair.nn
-from flair.data import MultiCorpus, Corpus
+from flair.data import MultiCorpus, Corpus, Token
 from flair.datasets import DataLoader
 from flair.training_utils import (
     log_line,
     add_file_handler,
     Result,
+    Metric,
     store_embeddings,
 )
 from flair.models import SequenceTagger
 
 import torch
-from torch.optim.lr_scheduler import ReduceLROnPlateau, MultiStepLR
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.optim.sgd import SGD
 from torch.utils.tensorboard import SummaryWriter
 
@@ -31,6 +32,126 @@ def save_to_ckpt(temp_outdir, tagger, corpus, unlabel_data):
     corpus_path = os.path.join(temp_outdir, 'corpus.pickle')
     tagger.save(last_model_path)
     pickle.dump((corpus, unlabel_data), open(corpus_path, 'wb'))
+
+
+def evaluate(
+    model,
+    data_loader: DataLoader,
+    out_path: Path = None,
+    embedding_storage_mode: str = "none",
+) -> (Result, float):
+    if type(out_path) == str:
+        out_path = Path(out_path)
+
+    with torch.no_grad():
+        eval_loss = 0
+
+        batch_no: int = 0
+
+        metric = Metric("Evaluation", beta=model.beta)
+
+        lines: List[str] = []
+
+        if model.use_crf:
+            transitions = model.transitions.detach().cpu().numpy()
+        else:
+            transitions = None
+
+        for batch in data_loader:
+            batch_no += 1
+
+            with torch.no_grad():
+                features = model.forward(batch)
+                loss = model._calculate_loss(features, batch)
+                tags, _ = model._obtain_labels(
+                    feature=features,
+                    batch_sentences=batch,
+                    transitions=transitions,
+                    get_all_tags=False,
+                )
+
+            eval_loss += loss
+
+            for (sentence, sent_tags) in zip(batch, tags):
+                for (token, tag) in zip(sentence.tokens, sent_tags):
+                    token: Token = token
+                    token.add_tag("predicted", tag.value, tag.score)
+
+                    # append both to file for evaluation
+                    eval_line = "{} {} {} {}\n".format(
+                        token.text,
+                        token.get_tag(model.tag_type).value,
+                        tag.value,
+                        tag.score,
+                    )
+                    lines.append(eval_line)
+                lines.append("\n")
+
+            def add_tags(spans, tag_names, new_name):
+                new_tags = []
+                for tag in spans:
+                    if tag.tag in tag_names:
+                        new_tags.append([new_name, tag.text])
+                return new_tags
+
+            for sentence in batch:
+                # make list of gold tags
+                gold_tags = [
+                    (tag.tag, tag.text) for tag in sentence.get_spans(model.tag_type)
+                ]
+
+                gold_tags += add_tags(sentence.get_spans(model.tag_type), ['PATIENT', 'DOCTOR'], 'NAME')
+
+                # make list of predicted tags
+                predicted_tags = [
+                    (tag.tag, tag.text) for tag in sentence.get_spans("predicted")
+                ]
+
+                predicted_tags += add_tags(sentence.get_spans("predicted"), ['PATIENT', 'DOCTOR'], 'NAME')
+
+                # check for true positives, false positives and false negatives
+                for tag, prediction in predicted_tags:
+                    if (tag, prediction) in gold_tags:
+                        metric.add_tp(tag)
+                    else:
+                        metric.add_fp(tag)
+
+                for tag, gold in gold_tags:
+                    if (tag, gold) not in predicted_tags:
+                        metric.add_fn(tag)
+                    else:
+                        metric.add_tn(tag)
+
+            store_embeddings(batch, embedding_storage_mode)
+
+        eval_loss /= batch_no
+
+        if out_path is not None:
+            with open(out_path, "w", encoding="utf-8") as outfile:
+                outfile.write("".join(lines))
+
+        detailed_result = (
+            f"\nMICRO_AVG: acc {metric.micro_avg_accuracy():.4f} - f1-score {metric.micro_avg_f_score():.4f}"
+            f"\nMACRO_AVG: acc {metric.macro_avg_accuracy():.4f} - f1-score {metric.macro_avg_f_score():.4f}"
+        )
+
+        for class_name in metric.get_classes():
+            detailed_result += (
+                f"\n{class_name:<10} tp: {metric.get_tp(class_name)} - fp: {metric.get_fp(class_name)} - "
+                f"fn: {metric.get_fn(class_name)} - tn: {metric.get_tn(class_name)} - precision: "
+                f"{metric.precision(class_name):.4f} - recall: {metric.recall(class_name):.4f} - "
+                f"accuracy: {metric.accuracy(class_name):.4f} - f1-score: "
+                f"{metric.f_score(class_name):.4f}"
+            )
+
+        result = Result(
+            main_score=metric.micro_avg_f_score(),
+            log_line=f"{metric.precision():.4f}\t{metric.recall():.4f}\t{metric.micro_avg_f_score():.4f}",
+            log_header="PRECISION\tRECALL\tF1",
+            detailed_results=detailed_result,
+        )
+
+        return result, eval_loss, metric.f_score('NAME')
 
 
 class ModelTrainer:
@@ -66,6 +187,7 @@ class ModelTrainer:
         self,
         base_path: Union[Path, str],
         unlabel_data: flair.datasets.ColumnDataset,
+        out_corpus: flair.data.Corpus = None,
         is_gcp: bool = False,
         gcp_dir: str = "",
         unlabel_batch_ratio: int = 0,
@@ -281,13 +403,14 @@ class ModelTrainer:
                         if unlabel_batch_ratio > 0:
                             writer.add_scalar("train/unsup_train_loss", unsup_train_loss, self.epoch)
 
-                def dev_step():
+                def dev_step(dev_corpus, dev_name):
                     # evaluate on train / dev / test split depending on training settings
                     result_line: str = ""
                     self.model.eval()
-                    dev_eval_result, dev_loss = self.model.evaluate(
+                    dev_eval_result, dev_loss, name_f1 = evaluate(
+                        self.model,
                         DataLoader(
-                            self.corpus.dev,
+                            dev_corpus,
                             batch_size=mini_batch_size,
                             num_workers=num_workers,
                         ),
@@ -301,12 +424,15 @@ class ModelTrainer:
                     current_score = dev_eval_result.main_score
 
                     # depending on memory mode, embeddings are moved to CPU, GPU or deleted
-                    store_embeddings(self.corpus.dev, embeddings_storage_mode)
+                    store_embeddings(dev_corpus, embeddings_storage_mode)
                     if self.use_tensorboard:
                         writer.add_scalar(
-                            "dev/micro_f1", dev_eval_result.main_score, self.epoch
+                            "%s/micro_f1" % dev_name, dev_eval_result.main_score, self.epoch
                         )
-                        writer.add_scalar("dev/loss", dev_loss, self.epoch)
+                        writer.add_scalar(
+                            "%s/name_micro_f1" % dev_name, name_f1, self.epoch
+                        )
+                        writer.add_scalar("%s/loss" % dev_name, dev_loss, self.epoch)
 
                     if self.epoch % saving_fqs == 0:
                         log.info("Saving model & corpus to local directory")
@@ -318,7 +444,11 @@ class ModelTrainer:
 
                     return current_score
 
-                current_score = dev_step()
+                current_score = dev_step(self.corpus.dev, 'dev')
+
+                if out_corpus is not None:
+                    dev_step(out_corpus.dev, 'out_dev')
+
                 for i in range(train_step_ratio):
                     train_step()
                     self.epoch += 1
@@ -388,7 +518,8 @@ class ModelTrainer:
 
         self.best_model.eval()
 
-        test_results, test_loss = self.best_model.evaluate(
+        test_results, test_loss, _ = evaluate(
+            self.best_model,
             DataLoader(
                 self.corpus.test,
                 batch_size=eval_mini_batch_size,
@@ -407,7 +538,8 @@ class ModelTrainer:
         if type(self.corpus) is MultiCorpus:
             for subcorpus in self.corpus.corpora:
                 log_line(log)
-                self.best_model.evaluate(
+                evaluate(
+                    self.best_model,
                     DataLoader(
                         subcorpus.test,
                         batch_size=eval_mini_batch_size,

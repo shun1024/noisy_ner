@@ -19,6 +19,7 @@ FLAGS = flags.FLAGS
 # Data
 flags.DEFINE_boolean('is_gcp', False, 'whether run on GCP')
 flags.DEFINE_string('dataset', './data/test', 'dataset folder')
+flags.DEFINE_string('out_dataset', None, 'out domain dataset')
 flags.DEFINE_string('teacher_dir', None, 'directory with teacher init ckpt and corpus')
 flags.DEFINE_string('output_dir', './output', 'output directory')
 flags.DEFINE_string('exp', 'test', 'output directory')
@@ -77,6 +78,10 @@ def main(_):
 
     corpus = load_dataset(temp_indir)
 
+    out_corpus = None
+    if FLAGS.out_dataset is not None:
+        out_corpus = load_dataset(temp_indir)
+
     if FLAGS.train_with_dev:
         corpus.train.sentences = corpus.train.sentences + corpus.dev.sentences
         corpus.train.total_sentence_count = len(corpus.train.sentences)
@@ -105,10 +110,16 @@ def main(_):
     trainer = ModelTrainer(tagger, corpus, use_tensorboard=True)
     train_step_ratio = min(15, max(3, int(1 / FLAGS.training_ratio)))
 
+    if out_corpus is not None:
+        # add training as unlabel
+        unlabel_data.total_sentence_count += len(out_corpus.train.sentences)
+        unlabel_data.sentences += out_corpus.train.sentences
+
     trainer.train(temp_outdir,
                   is_gcp=FLAGS.is_gcp,
                   gcp_dir=os.path.join(FLAGS.output_dir, exp_name),
                   unlabel_data=unlabel_data,
+                  out_corpus=out_corpus,
                   unlabel_batch_ratio=FLAGS.unlabel_batch_ratio,
                   unlabel_weight=FLAGS.unlabel_weight,
                   augment_prob=FLAGS.augmentation_strength,

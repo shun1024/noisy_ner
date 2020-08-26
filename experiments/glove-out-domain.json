@@ -1,0 +1,20 @@
+{
+  "gpu_type": "t4",
+  "num_gpu": 1,
+  "exp": "outdomain",
+  "dataset": "deid-xcloud/data/test",
+  "output_dir": "xcloud_public_bucket/shunl/results/i2b2_2006/outdomain",
+  "teacher_dir": [""],
+  "out_dataset": ["xcloud_public_bucket/shunl/data/i2b2_2014"],
+  "embedding": ["glove+char"],
+  "training_ratio": [1.0],
+  "epoch": [50],
+  "learning_rate": [0.3, 0.1],
+  "batch_size": [16, 32],
+  "dropout": [0.2],
+  "unlabel_batch_ratio": [1, 2],
+  "unlabel_weight": [0.3, 1],
+  "augmentation_strength": [0.1, 0.2],
+  "update_teacher": [true],
+  "temperature": [0.3, 1]
+}
