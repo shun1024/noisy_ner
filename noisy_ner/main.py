@@ -80,7 +80,11 @@ def main(_):
 
     out_corpus = None
     if FLAGS.out_dataset is not None:
-        out_corpus = load_dataset(temp_indir)
+        if FLAGS.is_gcp:
+            temp_out_indir, _ = prepare_temp_dir(FLAGS.out_dataset, FLAGS.teacher_dir)
+        else:
+            temp_out_indir = FLAGS.out_dataset
+        out_corpus = load_dataset(temp_out_indir)
 
     if FLAGS.train_with_dev:
         corpus.train.sentences = corpus.train.sentences + corpus.dev.sentences

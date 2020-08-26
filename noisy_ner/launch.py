@@ -13,7 +13,7 @@ flags.DEFINE_string('json', None, 'json store experiment hyper-parameters')
 
 
 def get_exp_name(parameter):
-    non_add_name = ['teacher_dir']
+    non_add_name = ['teacher_dir', 'out_dataset']
     exp_name = []
     for key in parameter:
         if key in non_add_name:
