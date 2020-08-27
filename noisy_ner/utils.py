@@ -1,11 +1,8 @@
-import tempfile
 import pickle
 import copy, os, random
 
 from absl import logging
-
 from flair.data import Sentence
-
 from google.cloud import storage
 
 
@@ -37,22 +34,6 @@ def upload_folder_to_gcs(local_folder, gcs_path):
             with open(filename, 'rb') as f:
                 blob.upload_from_file(f)
             logging.info('uploading: {} to {}'.format(filename, blob.path))
-
-
-def prepare_temp_dir(dataset, teacher_dir=None):
-    # prepare input and output directory
-    logging.info('Prepare local directory')
-    temp_dir = tempfile.mkdtemp()
-    temp_indir, temp_outdir = os.path.join(temp_dir, 'inputs'), os.path.join(temp_dir, 'outputs')
-    os.makedirs(temp_indir, exist_ok=True)
-    os.makedirs(temp_outdir, exist_ok=True)
-
-    download_folder_from_gcs(temp_indir, dataset)
-    download_folder_from_gcs('./glove', 'deid-xcloud/data/glove')
-    if teacher_dir is not None:
-        download_folder_from_gcs(temp_indir, teacher_dir)
-
-    return temp_indir, temp_outdir
 
 
 def remove_labels(corpus, label_ratio):
@@ -99,11 +80,11 @@ def normalize_corpus(corpus, unlabel_data):
     return corpus, unlabel_data
 
 
-def init_from_ckpt(temp_indir, tagger):
+def init_from_ckpt(temp_indir):
     logging.info('Loading teacher ckpt from: {}'.format(temp_indir))
-    model_path = os.path.join(temp_indir, 'final.ckpt')
+    model_path = os.path.join(temp_indir, 'final.pickle')
     corpus_path = os.path.join(temp_indir, 'corpus.pickle')
-    tagger = tagger.load(model_path)
+    tagger = pickle.load(open(model_path, 'rb'))
     corpus, unlabel_data = pickle.load(open(corpus_path, 'rb'))
     logging.info('Completed loading !!!')
     return tagger, corpus, unlabel_data
@@ -111,7 +92,8 @@ def init_from_ckpt(temp_indir, tagger):
 
 def save_to_ckpt(temp_outdir, tagger, corpus, unlabel_data):
     logging.info('Saving teacher ckpt')
-    last_model_path = os.path.join(temp_outdir, 'final.ckpt')
+    last_model_path = os.path.join(temp_outdir, 'final.pickle')
     corpus_path = os.path.join(temp_outdir, 'corpus.pickle')
-    tagger.save(last_model_path)
+    pickle.dump(tagger, open(last_model_path, 'wb'))
     pickle.dump((corpus, unlabel_data), open(corpus_path, 'wb'))
+    logging.info('Completed saving !!!')

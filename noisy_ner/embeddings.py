@@ -26,7 +26,7 @@ def get_embedding(embedding, finetune_bert=False):
         if embedding == 'bert':
             result.append(CustomBertEmbeddings(layers="-1", finetune_bert=finetune_bert))
         if embedding == 'glove':
-            result.append(LargeGloveEmbeddings('./glove'))
+            result.append(LargeGloveEmbeddings('./data/glove'))
 
     return StackedEmbeddings(embeddings=result)
 

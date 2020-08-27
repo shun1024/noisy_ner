@@ -6,27 +6,26 @@ from absl import logging
 
 import flair
 from flair.datasets import ColumnCorpus
+from flair.models import SequenceTagger
 
-from noisy_ner.utils import prepare_temp_dir
+from noisy_ner.utils import download_folder_from_gcs
 from noisy_ner.utils import remove_labels, normalize_corpus
 from noisy_ner.utils import init_from_ckpt
-from noisy_ner.trainer import ModelTrainer
-from noisy_ner.tagger import CustomTagger
+from noisy_ner.trainer import CustomTrainer
 from noisy_ner.embeddings import get_embedding
 
 FLAGS = flags.FLAGS
 
 # Data
 flags.DEFINE_boolean('is_gcp', False, 'whether run on GCP')
+flags.DEFINE_string('exp', 'test', 'output directory')
 flags.DEFINE_string('dataset', './data/test', 'dataset folder')
 flags.DEFINE_string('out_dataset', None, 'out domain dataset')
-flags.DEFINE_string('teacher_dir', None, 'directory with teacher init ckpt and corpus')
 flags.DEFINE_string('output_dir', './output', 'output directory')
-flags.DEFINE_string('exp', 'test', 'output directory')
-flags.DEFINE_string('embedding', 'bert', 'embedding type')
-flags.DEFINE_boolean('train_from_scratch', False, 'whether to train student from scratch')
-flags.DEFINE_boolean('finetune_bert', False, 'whether to adjust bert')
+flags.DEFINE_string('embedding', 'glove+char', 'embedding type')
 flags.DEFINE_integer('train_with_dev', 1, 'train with dev')
+flags.DEFINE_string('teacher_dir', None, 'directory with teacher init ckpt and corpus')
+flags.DEFINE_boolean('train_from_scratch', False, 'whether to train student from scratch')
 
 # Model flags
 flags.DEFINE_integer('number_rnn_layers', 2, 'number of rnn layers')
@@ -44,7 +43,7 @@ flags.DEFINE_integer('batch_size', 32, 'batch size')
 # Unlabel flags
 flags.DEFINE_float('training_ratio', 1, 'percentage of label data')
 flags.DEFINE_integer('unlabel_batch_ratio', 0, 'unlabel batch size = ratio * batch size')
-flags.DEFINE_boolean('update_teacher', False, 'whether to update teacher')
+flags.DEFINE_boolean('update_teacher', True, 'whether to update teacher')
 flags.DEFINE_float('unlabel_weight', 1, 'weight for unlabel loss')
 flags.DEFINE_string('augmentation', 'word_replace', 'augmentation methods')
 flags.DEFINE_float('augmentation_strength', 0.15, 'strength for augmentations')
@@ -72,70 +71,63 @@ def main(_):
     logging.info('Start Exp: {}'.format(exp_name))
 
     if FLAGS.is_gcp:
-        temp_indir, temp_outdir = prepare_temp_dir(FLAGS.dataset, FLAGS.teacher_dir)
+        download_folder_from_gcs('./data', 'xcloud_public_bucket/shunl/data/')
+        temp_outdir = './output'
+        if FLAGS.teacher_dir:
+            download_folder_from_gcs('./model'.FLAGS.teacher_dir)
+            FLAGS.teacher_dir = './model'
     else:
-        temp_indir, temp_outdir = FLAGS.dataset, os.path.join(FLAGS.output_dir, exp_name)
+        temp_outdir = os.path.join(FLAGS.output_dir, FLAGS.exp)
 
-    corpus = load_dataset(temp_indir)
+    if FLAGS.teacher_dir is None:
+        corpus = load_dataset(FLAGS.dataset)
 
-    out_corpus = None
-    if FLAGS.out_dataset is not None:
-        if FLAGS.is_gcp:
-            temp_out_indir, _ = prepare_temp_dir(FLAGS.out_dataset, FLAGS.teacher_dir)
-        else:
-            temp_out_indir = FLAGS.out_dataset
-        out_corpus = load_dataset(temp_out_indir)
+        # TODO (shunl): hack for monitoring, to be removed
+        if FLAGS.train_with_dev:
+            corpus.train.sentences = corpus.train.sentences + corpus.dev.sentences
+            corpus.train.total_sentence_count = len(corpus.train.sentences)
+        corpus = flair.data.Corpus(corpus.train, corpus.test, corpus.test, name='dataset')
 
-    # TODO (shunl): hack for monitoring, to be removed
-    if FLAGS.train_with_dev:
-        corpus.train.sentences = corpus.train.sentences + corpus.dev.sentences
-        corpus.train.total_sentence_count = len(corpus.train.sentences)
-    corpus = flair.data.Corpus(corpus.train, corpus.test, corpus.test, name='dataset')
+        corpus, unlabel_data = remove_labels(corpus, FLAGS.training_ratio)
+        corpus, unlabel_data = normalize_corpus(corpus, unlabel_data)
+        tag_dictionary = corpus.make_tag_dictionary(tag_type='ner')
+        embeddings = get_embedding(FLAGS.embedding, finetune_bert=False)
+        tagger = SequenceTagger(hidden_size=FLAGS.hidden_size,
+                                dropout=FLAGS.dropout,
+                                word_dropout=FLAGS.word_dropout,
+                                locked_dropout=FLAGS.locked_dropout,
+                                rnn_layers=FLAGS.number_rnn_layers,
+                                embeddings=embeddings,
+                                tag_dictionary=tag_dictionary,
+                                tag_type='ner',
+                                use_crf=True)
+    else:
+        tagger, corpus, unlabel_data = init_from_ckpt(FLAGS.teacher_dir)
 
-    corpus, unlabel_data = remove_labels(corpus, FLAGS.training_ratio)
-    corpus, unlabel_data = normalize_corpus(corpus, unlabel_data)
-    tag_dictionary = corpus.make_tag_dictionary(tag_type='ner')
-    embeddings = get_embedding(FLAGS.embedding, finetune_bert=FLAGS.finetune_bert)
-    tagger = CustomTagger(hidden_size=FLAGS.hidden_size,
-                          dropout=FLAGS.dropout,
-                          word_dropout=FLAGS.word_dropout,
-                          locked_dropout=FLAGS.locked_dropout,
-                          rnn_layers=FLAGS.number_rnn_layers,
-                          embeddings=embeddings,
-                          tag_dictionary=tag_dictionary,
-                          tag_type='ner',
-                          use_crf=True)
-
-    if FLAGS.teacher_dir is not None:
-        if FLAGS.is_gcp:
-            FLAGS.teacher_dir = temp_indir
-        tagger, corpus, unlabel_data = init_from_ckpt(FLAGS.teacher_dir, tagger)
-
-    trainer = ModelTrainer(tagger, corpus, use_tensorboard=True)
-    train_step_ratio = min(15, max(3, int(1 / FLAGS.training_ratio)))
-
+    out_corpus = load_dataset(FLAGS.out_dataset) if FLAGS.out_dataset is not None else None
     if out_corpus is not None:
-        # add training as unlabel
         unlabel_data.total_sentence_count += len(out_corpus.train.sentences)
         unlabel_data.sentences += out_corpus.train.sentences
 
-    trainer.train(temp_outdir,
-                  is_gcp=FLAGS.is_gcp,
-                  gcp_dir=os.path.join(FLAGS.output_dir, exp_name),
-                  unlabel_data=unlabel_data,
-                  out_corpus=out_corpus,
-                  unlabel_batch_ratio=FLAGS.unlabel_batch_ratio,
-                  unlabel_weight=FLAGS.unlabel_weight,
-                  augment_prob=FLAGS.augmentation_strength,
-                  augment_method=FLAGS.augmentation,
-                  temperature=FLAGS.temperature,
-                  train_step_ratio=train_step_ratio,
-                  learning_rate=FLAGS.learning_rate,
-                  train_from_scratch=FLAGS.train_from_scratch,
-                  mini_batch_size=FLAGS.batch_size,
-                  max_epochs=FLAGS.epoch,
-                  update_teacher=FLAGS.update_teacher,
-                  embeddings_storage_mode='none')
+    trainer = CustomTrainer(tagger, corpus, use_tensorboard=True)
+    train_step_ratio = min(15, max(3, int(1 / FLAGS.training_ratio)))
+
+    trainer.cutsom_train(temp_outdir,
+                         is_gcp=FLAGS.is_gcp,
+                         gcp_dir=os.path.join(FLAGS.output_dir, exp_name),
+                         unlabel_data=unlabel_data,
+                         out_corpus=out_corpus,
+                         unlabel_batch_ratio=FLAGS.unlabel_batch_ratio,
+                         unlabel_weight=FLAGS.unlabel_weight,
+                         augment_prob=FLAGS.augmentation_strength,
+                         augment_method=FLAGS.augmentation,
+                         temperature=FLAGS.temperature,
+                         train_step_ratio=train_step_ratio,
+                         learning_rate=FLAGS.learning_rate,
+                         train_from_scratch=FLAGS.train_from_scratch,
+                         mini_batch_size=FLAGS.batch_size,
+                         max_epochs=FLAGS.epoch,
+                         update_teacher=FLAGS.update_teacher)
 
     logging.info('Finished !!!')
 
