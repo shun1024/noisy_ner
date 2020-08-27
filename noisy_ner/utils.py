@@ -12,8 +12,10 @@ def parsing_gcs_path(gcs_path):
 
 
 def download_folder_from_gcs(local_folder, gcs_path):
+    #gcs_bucket, gcs_folder = parsing_gcs_path(gcs_path)
     os.makedirs(local_folder, exist_ok=True)
-    gcs_bucket, gcs_folder = parsing_gcs_path(gcs_path)
+    os.system("gsutil -m cp -R %s %s" % (gcs_path, local_folder))
+    """
     client = storage.Client()
     bucket = client.get_bucket(gcs_bucket)
     blobs = bucket.list_blobs(prefix=gcs_folder)
@@ -21,10 +23,12 @@ def download_folder_from_gcs(local_folder, gcs_path):
         local_path = os.path.join(local_folder, os.path.basename(blob.name))
         logging.info('downloading: {} to {}'.format(blob.path, local_path))
         blob.download_to_filename(local_path)
-
+    """
 
 def upload_folder_to_gcs(local_folder, gcs_path):
-    gcs_bucket, gcs_folder = parsing_gcs_path(gcs_path)
+    #gcs_bucket, gcs_folder = parsing_gcs_path(gcs_path)
+    os.system("gsutil -m cp -R %s %s" % (local_folder, gcs_path))
+    """
     client = storage.Client()
     bucket = client.get_bucket(gcs_bucket)
     for dir_path, _, filenames in os.walk(local_folder):
@@ -34,7 +38,7 @@ def upload_folder_to_gcs(local_folder, gcs_path):
             with open(filename, 'rb') as f:
                 blob.upload_from_file(f)
             logging.info('uploading: {} to {}'.format(filename, blob.path))
-
+    """
 
 def remove_labels(corpus, label_ratio):
     # split label/unlabel

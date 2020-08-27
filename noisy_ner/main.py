@@ -71,10 +71,10 @@ def main(_):
     logging.info('Start Exp: {}'.format(exp_name))
 
     if FLAGS.is_gcp:
-        download_folder_from_gcs('./data', 'xcloud_public_bucket/shunl/data/')
+        download_folder_from_gcs('./data', 'gs://xcloud_public_bucket/shunl/data/*')
         temp_outdir = './output'
         if FLAGS.teacher_dir:
-            download_folder_from_gcs('./model'.FLAGS.teacher_dir)
+            download_folder_from_gcs('./model', os.path.join(FLAGS.teacher_dir, '*'))
             FLAGS.teacher_dir = './model'
     else:
         temp_outdir = os.path.join(FLAGS.output_dir, FLAGS.exp)
@@ -110,8 +110,7 @@ def main(_):
         unlabel_data.sentences += out_corpus.train.sentences
 
     trainer = CustomTrainer(tagger, corpus, use_tensorboard=True)
-    train_step_ratio = 1
-    #train_step_ratio = min(15, max(3, int(1 / FLAGS.training_ratio)))
+    train_step_ratio = min(10, max(3, int(1 / FLAGS.training_ratio)))
 
     trainer.cutsom_train(temp_outdir,
                          is_gcp=FLAGS.is_gcp,
