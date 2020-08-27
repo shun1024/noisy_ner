@@ -71,10 +71,22 @@ def main(_):
     logging.info('Start Exp: {}'.format(exp_name))
 
     if FLAGS.is_gcp:
-        download_folder_from_gcs('./data', 'gs://xcloud_public_bucket/shunl/data/*')
         temp_outdir = './output'
+
+        # download glove embedding
+        download_folder_from_gcs('./data/glove', 'xcloud_public_bucket/shunl/data/glove')
+        
+        # download training data
+        download_folder_from_gcs('./data', FLAGS.dataset)
+        FLAGS.dataset = './data'
+        
+        # download out domain data
+        if FLAGS.out_dataset:
+            download_folder_from_gcs('./out_data', FLAGS.out_dataset)
+            FLAGS.out_dataset = './out_data'           
+
         if FLAGS.teacher_dir:
-            download_folder_from_gcs('./model', os.path.join(FLAGS.teacher_dir, '*'))
+            download_folder_from_gcs('./model', FLAGS.teacher_dir)
             FLAGS.teacher_dir = './model'
     else:
         temp_outdir = os.path.join(FLAGS.output_dir, FLAGS.exp)
