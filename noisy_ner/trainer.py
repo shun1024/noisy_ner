@@ -39,6 +39,7 @@ def evaluate(
         batch_no: int = 0
 
         metric = Metric("Evaluation", beta=model.beta)
+        diff_metric = Metric("Evaluation", beta=model.beta)
 
         lines: List[str] = []
 
@@ -84,21 +85,7 @@ def evaluate(
                         new_tags.append([new_name, tag.text])
                 return new_tags
 
-            for sentence in batch:
-                # make list of gold tags
-                gold_tags = [
-                    (tag.tag, tag.text) for tag in sentence.get_spans(model.tag_type)
-                ]
-
-                gold_tags += add_tags(sentence.get_spans(model.tag_type), ['PATIENT', 'DOCTOR'], 'NAME')
-
-                # make list of predicted tags
-                predicted_tags = [
-                    (tag.tag, tag.text) for tag in sentence.get_spans("predicted")
-                ]
-
-                predicted_tags += add_tags(sentence.get_spans("predicted"), ['PATIENT', 'DOCTOR'], 'NAME')
-
+            def add_to_metric(metric, gold_tags, predicted_tags):
                 # check for true positives, false positives and false negatives
                 for tag, prediction in predicted_tags:
                     if (tag, prediction) in gold_tags:
@@ -111,6 +98,16 @@ def evaluate(
                         metric.add_fn(tag)
                     else:
                         metric.add_tn(tag)
+                return metric
+
+            for sentence in batch:
+                gold_tags = [(tag.tag, tag.text) for tag in sentence.get_spans(model.tag_type)]
+                predicted_tags = [(tag.tag, tag.text) for tag in sentence.get_spans("predicted")]
+                metric = add_to_metric(metric, gold_tags, predicted_tags)
+
+                gold_tags = add_tags(sentence.get_spans(model.tag_type), ['PATIENT', 'DOCTOR'], 'NAME')
+                predicted_tags = add_tags(sentence.get_spans("predicted"), ['PATIENT', 'DOCTOR'], 'NAME')
+                diff_metric = add_to_metric(diff_metric, gold_tags, predicted_tags)
 
             store_embeddings(batch, embedding_storage_mode)
 
@@ -141,7 +138,7 @@ def evaluate(
             detailed_results=detailed_result,
         )
 
-        return result, eval_loss, metric.f_score('NAME')
+        return result, eval_loss, diff_metric.f_score('NAME')
 
 
 class CustomTrainer(flair.trainers.ModelTrainer):
@@ -155,6 +152,7 @@ class CustomTrainer(flair.trainers.ModelTrainer):
             embedding_storage_mode="none",
         )
         log.info(f"DEV : loss {dev_loss} - score {eval_result.main_score}")
+        log.info(f"DEV : NAME F1 {name_f1}")
 
         current_score = eval_result.main_score
 
@@ -249,6 +247,7 @@ class CustomTrainer(flair.trainers.ModelTrainer):
                         upload_folder_to_gcs(base_path, gcp_dir)
 
                 # training steps
+                self.epoch += 1
                 self.model.train()
                 batch_loader = DataLoader(train_data, batch_size=mini_batch_size, shuffle=True, num_workers=8)
 
@@ -352,7 +351,7 @@ class CustomTrainer(flair.trainers.ModelTrainer):
                 if current_score > best_score:
                     self.model.eval()
                     best_score = current_score
-                    if update_teacher:
+                    if update_teacher and unlabel_batch_ratio > 0:
                         log.info(f"UPDATE TEACHER")
                         teacher = pickle.loads(pickle.dumps(self.model))
                         teacher.eval()

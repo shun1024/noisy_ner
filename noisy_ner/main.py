@@ -110,7 +110,8 @@ def main(_):
         unlabel_data.sentences += out_corpus.train.sentences
 
     trainer = CustomTrainer(tagger, corpus, use_tensorboard=True)
-    train_step_ratio = min(15, max(3, int(1 / FLAGS.training_ratio)))
+    train_step_ratio = 1
+    #train_step_ratio = min(15, max(3, int(1 / FLAGS.training_ratio)))
 
     trainer.cutsom_train(temp_outdir,
                          is_gcp=FLAGS.is_gcp,
