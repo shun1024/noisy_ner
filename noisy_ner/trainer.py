@@ -82,7 +82,7 @@ def evaluate(
                 new_tags = []
                 for tag in spans:
                     if tag.tag in tag_names:
-                        new_tags.append([new_name, tag.text])
+                        new_tags.append((new_name, tag.text))
                 return new_tags
 
             def add_to_metric(metric, gold_tags, predicted_tags):
@@ -137,7 +137,6 @@ def evaluate(
             log_header="PRECISION\tRECALL\tF1",
             detailed_results=detailed_result,
         )
-
         return result, eval_loss, diff_metric.f_score('NAME')
 
 
