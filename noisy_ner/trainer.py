@@ -150,8 +150,8 @@ class CustomTrainer(flair.trainers.ModelTrainer):
             DataLoader(corpus, batch_size=mini_batch_size, num_workers=8),
             embedding_storage_mode="none",
         )
-        log.info(f"DEV : loss {dev_loss} - score {eval_result.main_score}")
-        log.info(f"DEV : NAME F1 {name_f1}")
+        log.info(f"DEV {name} : loss {dev_loss} - score {eval_result.main_score}")
+        log.info(f"DEV {name} : NAME F1 {name_f1}")
 
         current_score = eval_result.main_score
 
@@ -236,14 +236,17 @@ class CustomTrainer(flair.trainers.ModelTrainer):
                     self.model.eval()
                     current_score = self.dev_step(self.corpus.dev, "dev", writer)
                     if out_corpus is not None:
-                        self.dev_step(out_corpus.dev, 'out_dev')
-
+                        self.dev_step(out_corpus.test, 'out_dev', writer)
+                    
                     log.info("Saving model & corpus to local directory")
                     save_to_ckpt(base_path, self.model, self.corpus, unlabel_data)
 
                     if is_gcp:
                         log.info("Uploading model to cloud bucket")
                         upload_folder_to_gcs(base_path, gcp_dir)
+
+                    # determine learning rate annealing through scheduler
+                    scheduler.step(current_score)
 
                 # training steps
                 self.epoch += 1
@@ -329,9 +332,6 @@ class CustomTrainer(flair.trainers.ModelTrainer):
                     writer.add_scalar("train/learning_rate", learning_rate, self.epoch)
                     if unlabel_batch_ratio > 0:
                         writer.add_scalar("train/unsup_train_loss", unsup_train_loss, self.epoch)
-
-                # determine learning rate annealing through scheduler
-                scheduler.step(current_score)
 
                 # determine bad epoch number
                 try:

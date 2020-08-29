@@ -23,7 +23,7 @@ flags.DEFINE_string('dataset', './data/test', 'dataset folder')
 flags.DEFINE_string('out_dataset', None, 'out domain dataset')
 flags.DEFINE_string('output_dir', './output', 'output directory')
 flags.DEFINE_string('embedding', 'glove+char', 'embedding type')
-flags.DEFINE_integer('train_with_dev', 1, 'train with dev')
+flags.DEFINE_boolean('train_with_dev', True, 'train with dev')
 flags.DEFINE_string('teacher_dir', None, 'directory with teacher init ckpt and corpus')
 flags.DEFINE_boolean('train_from_scratch', False, 'whether to train student from scratch')
 
@@ -118,6 +118,7 @@ def main(_):
 
     out_corpus = load_dataset(FLAGS.out_dataset) if FLAGS.out_dataset is not None else None
     if out_corpus is not None:
+        out_corpus, unlabel_data = normalize_corpus(out_corpus, unlabel_data)
         unlabel_data.total_sentence_count += len(out_corpus.train.sentences)
         unlabel_data.sentences += out_corpus.train.sentences
 
