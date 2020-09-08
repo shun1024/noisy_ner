@@ -1,12 +1,12 @@
 {
   "gpu_type": "t4",
   "num_gpu": 1,
-  "exp": "glove-baseline",
+  "exp": "ablation",
   "dataset": "xcloud_public_bucket/shunl/data/i2b2_2014",
-  "output_dir": "xcloud_public_bucket/shunl/new_results/i2b2_2014/baseline",
-  "training_ratio": [0.03, 0.1, 0.3, 1.0],
+  "output_dir": "xcloud_public_bucket/shunl/new_results/i2b2_2014/ablation/baseline",
+  "training_ratio": [1.0],
   "epoch": [100],
-  "embedding": ["glove+char"],
+  "embedding": ["glove+char", "bert+char", "glove+bert+char", "bert"],
   "number_rnn_layers": [2],
   "learning_rate": [0.1, 0.3],
   "batch_size": [16, 32]

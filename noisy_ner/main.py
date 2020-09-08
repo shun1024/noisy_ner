@@ -42,6 +42,7 @@ flags.DEFINE_integer('batch_size', 32, 'batch size')
 
 # Unlabel flags
 flags.DEFINE_float('training_ratio', 1, 'percentage of label data')
+flags.DEFINE_float('unlabel_ratio', 1, 'percentage of unlabel data')
 flags.DEFINE_integer('unlabel_batch_ratio', 0, 'unlabel batch size = ratio * batch size')
 flags.DEFINE_boolean('update_teacher', True, 'whether to update teacher')
 flags.DEFINE_float('unlabel_weight', 1, 'weight for unlabel loss')
@@ -121,6 +122,11 @@ def main(_):
         out_corpus, unlabel_data = normalize_corpus(out_corpus, unlabel_data)
         unlabel_data.total_sentence_count += len(out_corpus.train.sentences)
         unlabel_data.sentences += out_corpus.train.sentences
+    
+    if FLAGS.unlabel_ratio < 1:
+        unlabel_total_length = int(unlabel_data.total_sentence_count * FLAGS.unlabel_ratio)
+        unlabel_data.total_sentence_count = unlabel_total_length 
+        unlabel_data.sentences = unlabel_data.sentences[:unlabel_total_length]       
 
     trainer = CustomTrainer(tagger, corpus, use_tensorboard=True)
     train_step_ratio = min(10, max(3, int(1 / FLAGS.training_ratio)))
