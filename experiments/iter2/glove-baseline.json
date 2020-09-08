@@ -1,0 +1,13 @@
+{
+  "gpu_type": "t4",
+  "num_gpu": 1,
+  "exp": "mimicbaseline",
+  "dataset": "deid-xcloud/data/mimic3",
+  "output_dir": "deid-xcloud/mimic/results/mimic3/baseline",
+  "training_ratio": [1.0, 0.3, 0.1, 0.03],
+  "epoch": [100],
+  "embedding": ["glove+char"],
+  "number_rnn_layers": [2],
+  "learning_rate": [0.1, 0.3],
+  "batch_size": [16, 32]
+}

@@ -1,6 +1,7 @@
 import numpy as np
 
 from typing import List, Union, Dict
+from pathlib import Path
 
 import os
 import torch
@@ -13,6 +14,7 @@ from flair.embeddings.token import TokenEmbeddings
 from flair.embeddings import StackedEmbeddings
 from flair.embeddings import WordEmbeddings, CharacterEmbeddings, BertEmbeddings
 from flair.embeddings.base import ScalarMix
+from flair.file_utils import cached_path
 
 log = logging.getLogger("flair")
 
@@ -38,6 +40,20 @@ class LargeGloveEmbeddings(WordEmbeddings):
         """
         Initializes classic word embeddings - made for large glove embedding
         """
+
+        # skip updating to new flair version
+        old_base_path = (
+            "https://flair.informatik.hu-berlin.de/resources/embeddings/token/"
+        )
+
+        cache_dir = Path("embeddings")
+
+        # GLOVE embeddings
+        cached_path(f"{old_base_path}glove.gensim.vectors.npy", cache_dir=cache_dir)
+        cached_path(
+            f"{old_base_path}glove.gensim", cache_dir=cache_dir
+        )
+
         super().__init__('glove')
         embeddings = '840b-300d-glove'
         self.field = ""
