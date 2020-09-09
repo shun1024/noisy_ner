@@ -22,6 +22,16 @@ log = logging.getLogger("flair")
 def get_embedding(embedding, finetune_bert=False):
     embeddings = embedding.split('+')
     result = [CaseEmbedding()]
+    # skip updating to new flair version
+    old_base_path = "https://flair.informatik.hu-berlin.de/resources/embeddings/token/"
+    cache_dir = Path("embeddings")
+    cached_path(f"{old_base_path}glove.gensim.vectors.npy", cache_dir=cache_dir)
+    cached_path(
+        f"{old_base_path}glove.gensim", cache_dir=cache_dir
+    )
+
+    cached_path(f"https://flair.informatik.hu-berlin.de/resources/characters/common_characters", cache_dir="datasets")
+
     for embedding in embeddings:
         if embedding == 'char':
             result.append(CustomCharacterEmbeddings())
@@ -40,19 +50,6 @@ class LargeGloveEmbeddings(WordEmbeddings):
         """
         Initializes classic word embeddings - made for large glove embedding
         """
-
-        # skip updating to new flair version
-        old_base_path = (
-            "https://flair.informatik.hu-berlin.de/resources/embeddings/token/"
-        )
-
-        cache_dir = Path("embeddings")
-
-        # GLOVE embeddings
-        cached_path(f"{old_base_path}glove.gensim.vectors.npy", cache_dir=cache_dir)
-        cached_path(
-            f"{old_base_path}glove.gensim", cache_dir=cache_dir
-        )
 
         super().__init__('glove')
         embeddings = '840b-300d-glove'

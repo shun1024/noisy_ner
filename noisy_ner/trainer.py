@@ -99,15 +99,23 @@ def evaluate(
                     else:
                         metric.add_tn(tag)
                 return metric
+            
+            is_mimic = False
+            for sentence in batch:
+                for tag in sentence.get_spans(model.tag_type):
+                    if tag.tag == "NAME":
+                        is_mimic = True
+                        break
 
             for sentence in batch:
                 gold_tags = [(tag.tag, tag.text) for tag in sentence.get_spans(model.tag_type)]
                 predicted_tags = [(tag.tag, tag.text) for tag in sentence.get_spans("predicted")]
                 metric = add_to_metric(metric, gold_tags, predicted_tags)
 
-                gold_tags = add_tags(sentence.get_spans(model.tag_type), ['PATIENT', 'DOCTOR'], 'NAME')
-                predicted_tags = add_tags(sentence.get_spans("predicted"), ['PATIENT', 'DOCTOR'], 'NAME')
-                diff_metric = add_to_metric(diff_metric, gold_tags, predicted_tags)
+                if not is_mimic:
+                    gold_tags = add_tags(sentence.get_spans(model.tag_type), ['PATIENT', 'DOCTOR'], 'NAME')
+                    predicted_tags = add_tags(sentence.get_spans("predicted"), ['PATIENT', 'DOCTOR'], 'NAME')
+                    diff_metric = add_to_metric(diff_metric, gold_tags, predicted_tags)
 
             store_embeddings(batch, embedding_storage_mode)
 
@@ -137,7 +145,11 @@ def evaluate(
             log_header="PRECISION\tRECALL\tF1",
             detailed_results=detailed_result,
         )
-        return result, eval_loss, diff_metric.f_score('NAME')
+
+        if is_mimic:
+            return result, eval_loss, metric.f_score('NAME')
+        else:
+            return result, eval_loss, diff_metric.f_score('NAME')
 
 
 class CustomTrainer(flair.trainers.ModelTrainer):

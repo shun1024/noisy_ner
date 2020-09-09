@@ -49,7 +49,7 @@ def check_compatibility(parameters):
 def main(_):
     all_json_args = json.load(open(FLAGS.json, 'r'))
     for exp in all_json_args:
-        json_args = json_args[exp]
+        json_args = all_json_args[exp]
 
         runtime = xm.CloudRuntime(
             cpu=4,
