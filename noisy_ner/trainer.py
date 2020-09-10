@@ -115,7 +115,11 @@ def evaluate(
                 if not is_mimic:
                     gold_tags = add_tags(sentence.get_spans(model.tag_type), ['PATIENT', 'DOCTOR'], 'NAME')
                     predicted_tags = add_tags(sentence.get_spans("predicted"), ['PATIENT', 'DOCTOR'], 'NAME')
-                    diff_metric = add_to_metric(diff_metric, gold_tags, predicted_tags)
+                else:
+                    gold_tags = [(tag.tag, tag.text) for tag in sentence.get_spans(model.tag_type)]
+                    predicted_tags = add_tags(sentence.get_spans("predicted"), ['PATIENT', 'DOCTOR'], 'NAME')
+
+                diff_metric = add_to_metric(diff_metric, gold_tags, predicted_tags)
 
             store_embeddings(batch, embedding_storage_mode)
 
@@ -146,10 +150,7 @@ def evaluate(
             detailed_results=detailed_result,
         )
 
-        if is_mimic:
-            return result, eval_loss, metric.f_score('NAME')
-        else:
-            return result, eval_loss, diff_metric.f_score('NAME')
+        return result, eval_loss, diff_metric.f_score('NAME')
 
 
 class CustomTrainer(flair.trainers.ModelTrainer):
