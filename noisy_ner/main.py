@@ -1,4 +1,4 @@
-import os, glob, shutil
+import os, glob, shutil, sys, pickle
 
 from absl import app
 from absl import flags
@@ -51,7 +51,11 @@ flags.DEFINE_float('augmentation_strength', 0.15, 'strength for augmentations')
 flags.DEFINE_float('temperature', 1, 'temperature for teacher model')
 
 
-def load_dataset(dataset_folder):
+def load_dataset(dataset_folder, load_pickle=True):
+    if load_pickle:
+        logging.info('loading pickle data')
+        return pickle.load(open(os.path.join(dataset_folder, 'pickle.pl'), 'rb'))
+
     if 'conll_03' in dataset_folder:
         temp_conll_dir = os.path.join(dataset_folder, 'conll_03')
         os.makedirs(temp_conll_dir, exist_ok=True)
@@ -64,6 +68,12 @@ def load_dataset(dataset_folder):
                               train_file='train.txt',
                               test_file='test.txt',
                               dev_file='dev.txt')
+    
+    corpus = normalize_corpus(corpus)
+    if not load_pickle:
+        logging.info("dumping pickle data")
+        pickle.dump(corpus, open(os.path.join(dataset_folder, 'pickle.pl'), 'wb'))
+        sys.exit()
     return corpus
 
 
@@ -100,9 +110,8 @@ def main(_):
             corpus.train.sentences = corpus.train.sentences + corpus.dev.sentences
             corpus.train.total_sentence_count = len(corpus.train.sentences)
         corpus = flair.data.Corpus(corpus.train, corpus.test, corpus.test, name='dataset')
-
+        logging.info('finished data loading')
         corpus, unlabel_data = remove_labels(corpus, FLAGS.training_ratio)
-        corpus, unlabel_data = normalize_corpus(corpus, unlabel_data)
         tag_dictionary = corpus.make_tag_dictionary(tag_type='ner')
         embeddings = get_embedding(FLAGS.embedding, finetune_bert=False)
         tagger = SequenceTagger(hidden_size=FLAGS.hidden_size,
@@ -119,7 +128,6 @@ def main(_):
 
     out_corpus = load_dataset(FLAGS.out_dataset) if FLAGS.out_dataset is not None else None
     if out_corpus is not None:
-        out_corpus, unlabel_data = normalize_corpus(out_corpus, unlabel_data)
         unlabel_data.total_sentence_count += len(out_corpus.train.sentences)
         unlabel_data.sentences += out_corpus.train.sentences
     

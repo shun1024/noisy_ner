@@ -48,6 +48,7 @@ def evaluate(
         else:
             transitions = None
 
+        tp, fp, fn = 0, 0, 0
         for batch in data_loader:
             batch_no += 1
 
@@ -100,28 +101,58 @@ def evaluate(
                         metric.add_tn(tag)
                 return metric
             
-            is_mimic = False
+            is_golden_mimic = False
+            is_predicted_mimic = False
             for sentence in batch:
                 for tag in sentence.get_spans(model.tag_type):
                     if tag.tag == "NAME":
-                        is_mimic = True
+                        is_golden_mimic = True
                         break
 
+            for sentence in batch:
+                for tag in sentence.get_spans("predicted"):
+                    if tag.tag == "NAME":
+                        is_predicted_mimic = True
+                        break
+            
             for sentence in batch:
                 gold_tags = [(tag.tag, tag.text) for tag in sentence.get_spans(model.tag_type)]
                 predicted_tags = [(tag.tag, tag.text) for tag in sentence.get_spans("predicted")]
                 metric = add_to_metric(metric, gold_tags, predicted_tags)
 
-                if not is_mimic:
+                if not is_golden_mimic:
                     gold_tags = add_tags(sentence.get_spans(model.tag_type), ['PATIENT', 'DOCTOR'], 'NAME')
-                    predicted_tags = add_tags(sentence.get_spans("predicted"), ['PATIENT', 'DOCTOR'], 'NAME')
-                else:
-                    gold_tags = [(tag.tag, tag.text) for tag in sentence.get_spans(model.tag_type)]
+
+                if not is_predicted_mimic:
                     predicted_tags = add_tags(sentence.get_spans("predicted"), ['PATIENT', 'DOCTOR'], 'NAME')
 
                 diff_metric = add_to_metric(diff_metric, gold_tags, predicted_tags)
+        """ 
+            for sentence in batch:
+                for token in sentence:
+                    gold = token.get_tag(model.tag_type).value.split('-')[-1]
+                    predicted = token.get_tag('predicted').value.split('-')[-1]
 
+                    def convert_to_name(tag):
+                        if tag in ['PATIENT', 'DOCTOR']:
+                            return 'NAME'
+                        return tag 
+
+                    gold, predicted = convert_to_name(gold), convert_to_name(predicted)
+                    if predicted == "NAME" and gold == "NAME":
+                        tp += 1
+                    if predicted == "NAME" and gold != "NAME":
+                        fp += 1
+                    if predicted != "NAME" and gold == "NAME":
+                        fn += 1
+
+           
             store_embeddings(batch, embedding_storage_mode)
+        
+        recall = tp * 1.0 / (tp + fn)
+        precision = tp * 1.0 / (tp + fp)
+        f1 = 2 * (recall * precision) / (recall + precision)
+        """
 
         eval_loss /= batch_no
 
@@ -149,7 +180,6 @@ def evaluate(
             log_header="PRECISION\tRECALL\tF1",
             detailed_results=detailed_result,
         )
-
         return result, eval_loss, diff_metric.f_score('NAME')
 
 
@@ -250,7 +280,7 @@ class CustomTrainer(flair.trainers.ModelTrainer):
                     current_score = self.dev_step(self.corpus.dev, "dev", writer)
                     if out_corpus is not None:
                         self.dev_step(out_corpus.test, 'out_dev', writer)
-                    
+
                     log.info("Saving model & corpus to local directory")
                     save_to_ckpt(base_path, self.model, self.corpus, unlabel_data)
 

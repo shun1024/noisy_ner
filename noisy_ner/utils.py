@@ -52,7 +52,7 @@ def remove_labels(corpus, label_ratio):
     return corpus, unlabel_data
 
 
-def normalize_corpus(corpus, unlabel_data):
+def normalize_corpus(corpus):
     # convert all digits to zeros
     def digit_to_zero(string):
         result = []
@@ -75,9 +75,9 @@ def normalize_corpus(corpus, unlabel_data):
             dataset.sentences[i] = sentence
         return dataset
 
-    for dataset in [corpus.train, corpus.dev, corpus.test, unlabel_data]:
+    for dataset in [corpus.train, corpus.dev, corpus.test]:
         normalize(dataset)
-    return corpus, unlabel_data
+    return corpus
 
 
 def init_from_ckpt(temp_indir):
