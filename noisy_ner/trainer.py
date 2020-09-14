@@ -196,7 +196,10 @@ class CustomTrainer(flair.trainers.ModelTrainer):
         log.info(f"DEV {name} : loss {dev_loss} - score {eval_result.main_score}")
         log.info(f"DEV {name} : NAME F1 {name_f1}")
 
-        current_score = eval_result.main_score
+        if 'out' in name:
+            current_score = name_f1
+        else:
+            current_score = eval_result.main_score
 
         # depending on memory mode, embeddings are moved to CPU, GPU or deleted
         store_embeddings(corpus, "none")
@@ -279,7 +282,7 @@ class CustomTrainer(flair.trainers.ModelTrainer):
                     self.model.eval()
                     current_score = self.dev_step(self.corpus.dev, "dev", writer)
                     if out_corpus is not None:
-                        self.dev_step(out_corpus.test, 'out_dev', writer)
+                        current_score = self.dev_step(out_corpus.test, 'out_dev', writer)
 
                     log.info("Saving model & corpus to local directory")
                     save_to_ckpt(base_path, self.model, self.corpus, unlabel_data)

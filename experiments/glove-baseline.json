@@ -1,20 +1,46 @@
 {
+  "2006-baseline": {
+    "gpu_type": "t4",
+    "num_gpu": 1,
+    "dataset": "deid-xcloud/data/i2b2_2006",
+    "output_dir": "deid-xcloud/new/i2b2_2006/baseline",
+    "training_ratio": [1.0, 0.3, 0.1, 0.03],
+    "learning_rate": [0.1, 0.3],
+    "batch_size": [16, 32], 
+    "dropout": [0.1, 0.2], 
+    "locked_dropout": [0.25, 0.5]
+  }, 
+  "2014-baseline": {
+    "gpu_type": "t4",
+    "num_gpu": 1,
+    "dataset": "deid-xcloud/data/i2b2_2014",
+    "output_dir": "deid-xcloud/new/i2b2_2014/baseline",
+    "training_ratio": [1.0, 0.3, 0.1, 0.03],
+    "learning_rate": [0.1, 0.3],
+    "batch_size": [16, 32], 
+    "dropout": [0.1, 0.2], 
+    "locked_dropout": [0.25, 0.5]
+  }, 
   "mimic3-baseline": {
     "gpu_type": "t4",
     "num_gpu": 1,
     "dataset": "deid-xcloud/data/mimic3",
-    "output_dir": "deid-xcloud/final/mimic3/baseline",
+    "output_dir": "deid-xcloud/new/mimic3/baseline",
     "training_ratio": [1.0, 0.3, 0.1, 0.03],
     "learning_rate": [0.1, 0.3],
-    "batch_size": [16, 32]
-  },
+    "batch_size": [16, 32], 
+    "dropout": [0.1, 0.2], 
+    "locked_dropout": [0.25, 0.5]
+  }, 
   "discharge-baseline": {
     "gpu_type": "t4",
     "num_gpu": 1,
     "dataset": "deid-xcloud/data/discharge",
-    "output_dir": "deid-xcloud/final/discharge/baseline",
+    "output_dir": "deid-xcloud/new/discharge/baseline",
     "training_ratio": [1.0, 0.3, 0.1, 0.03],
     "learning_rate": [0.1, 0.3],
-    "batch_size": [16, 32]
+    "batch_size": [16, 32], 
+    "dropout": [0.1, 0.2], 
+    "locked_dropout": [0.25, 0.5]
   }
 }

@@ -12,7 +12,8 @@
     "unlabel_batch_ratio": [1],
     "unlabel_weight": [1],
     "augmentation": ["char_replace", "word_replace+char_replace"],
-    "augmentation_strength": [0.1, 0.2, 0.3]
+    "augmentation_strength": [0.1, 0.2, 0.3], 
+    "temperature": [0.2, 1.0]
   },
   "06-mimic-out":{
     "gpu_type": "t4",
@@ -27,6 +28,7 @@
     "unlabel_batch_ratio": [1],
     "unlabel_weight": [1],
     "augmentation": ["char_replace", "word_replace+char_replace"],
-    "augmentation_strength": [0.1, 0.2, 0.3]
+    "augmentation_strength": [0.1, 0.2, 0.3],
+    "temperature": [0.2, 1.0]
   }
 }
