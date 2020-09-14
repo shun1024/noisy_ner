@@ -1,34 +1,66 @@
 {
-  "14-mimic-out":{
+  "06-outdomain":{
     "gpu_type": "t4",
     "num_gpu": 1,
-    "dataset": "deid-xcloud/data/i2b2_2014",
-    "output_dir": "deid-xcloud/final/i2b2_2014/outdomain",
+    "dataset": "deid-xcloud/data/i2b2_2006",
+    "output_dir": "deid-xcloud/new/i2b2_2006/outdomain",
     "training_ratio": [1.0],
-    "teacher_dir": ["xcloud_public_bucket/shunl/new_results/i2b2_2014/baseline/to=1.0,eh=100,eg=glove+char,ns=2,le=0.3,be=32"],
-    "out_dataset": ["deid-xcloud/data/mimic3", "deid-xcloud/data/discharge"],
+    "teacher_dir": ["deid-xcloud/new/i2b2_2006/baseline/to=1.0,le=0.3,be=16,dt=0.2,lt=0.5"],
+    "out_dataset": ["deid-xcloud/data/i2b2_2014", "deid-xcloud/data/mimic3", "deid-xcloud/data/discharge"],
     "learning_rate": [0.3, 0.1],
     "batch_size": [16, 32],
     "unlabel_batch_ratio": [1],
     "unlabel_weight": [1],
     "augmentation": ["char_replace", "word_replace+char_replace"],
     "augmentation_strength": [0.1, 0.2, 0.3], 
-    "temperature": [0.2, 1.0]
-  },
-  "06-mimic-out":{
+    "temperature": [1.0]
+  }, 
+  "14-outdomain":{
     "gpu_type": "t4",
     "num_gpu": 1,
-    "dataset": "deid-xcloud/data/i2b2_2006",
-    "output_dir": "deid-xcloud/final/i2b2_2006/outdomain",
+    "dataset": "deid-xcloud/data/i2b2_2014",
+    "output_dir": "deid-xcloud/new/i2b2_2014/outdomain",
     "training_ratio": [1.0],
-    "teacher_dir": ["xcloud_public_bucket/shunl/new_results/i2b2_2006/baseline/to=1.0,eh=100,eg=glove+char,ns=2,le=0.3,be=32"],
-    "out_dataset": ["deid-xcloud/data/mimic3", "deid-xcloud/data/discharge"],
+    "teacher_dir": ["deid-xcloud/new/i2b2_2014/baseline/to=1.0,le=0.1,be=16,dt=0.2,lt=0.5"],
+    "out_dataset": ["deid-xcloud/data/i2b2_2006", "deid-xcloud/data/mimic3", "deid-xcloud/data/discharge"],
     "learning_rate": [0.3, 0.1],
     "batch_size": [16, 32],
     "unlabel_batch_ratio": [1],
     "unlabel_weight": [1],
     "augmentation": ["char_replace", "word_replace+char_replace"],
-    "augmentation_strength": [0.1, 0.2, 0.3],
-    "temperature": [0.2, 1.0]
+    "augmentation_strength": [0.1, 0.2, 0.3], 
+    "temperature": [1.0]
+  },
+  "mimic-outdomain":{
+    "gpu_type": "t4",
+    "num_gpu": 1,
+    "dataset": "deid-xcloud/data/mimic3",
+    "output_dir": "deid-xcloud/new/mimic3/outdomain",
+    "training_ratio": [1.0],
+    "teacher_dir": ["deid-xcloud/new/mimic3/baseline/to=1.0,le=0.3,be=16,dt=0.2,lt=0.5"],
+    "out_dataset": ["deid-xcloud/data/i2b2_2006", "deid-xcloud/data/i2b2_2014", "deid-xcloud/data/discharge"],
+    "learning_rate": [0.3, 0.1],
+    "batch_size": [16, 32],
+    "unlabel_batch_ratio": [1],
+    "unlabel_weight": [1],
+    "augmentation": ["char_replace", "word_replace+char_replace"],
+    "augmentation_strength": [0.1, 0.2, 0.3], 
+    "temperature": [1.0]
+  },
+  "discharge-outdomain":{
+    "gpu_type": "t4",
+    "num_gpu": 1,
+    "dataset": "deid-xcloud/data/discharge",
+    "output_dir": "deid-xcloud/new/discharge/outdomain",
+    "training_ratio": [1.0],
+    "teacher_dir": ["deid-xcloud/new/discharge/baseline/to=1.0,le=0.3,be=16,dt=0.2,lt=0.5"],
+    "out_dataset": ["deid-xcloud/data/i2b2_2006", "deid-xcloud/data/i2b2_2014", "deid-xcloud/data/mimic3"],
+    "learning_rate": [0.3, 0.1],
+    "batch_size": [16, 32],
+    "unlabel_batch_ratio": [1],
+    "unlabel_weight": [1],
+    "augmentation": ["char_replace", "word_replace+char_replace"],
+    "augmentation_strength": [0.1, 0.2, 0.3], 
+    "temperature": [1.0]
   }
 }
