@@ -1,0 +1,62 @@
+{
+  "06-indomain":{
+    "gpu_type": "t4",
+    "num_gpu": 1,
+    "dataset": "deid-xcloud/data/i2b2_2006",
+    "output_dir": "deid-xcloud/new/i2b2_2006/indomain",
+    "training_ratio": [0.03, 0.1, 0.3],
+    "teacher_dir": ["deid-xcloud/new/i2b2_2006/baseline/to=0.03,le=0.3,be=16,dt=0.2,lt=0.5", "deid-xcloud/new/i2b2_2006/baseline/to=0.1,le=0.3,be=16,dt=0.2,lt=0.5", "deid-xcloud/new/i2b2_2006/baseline/to=0.3,le=0.3,be=16,dt=0.2,lt=0.5"],
+    "learning_rate": [0.3, 0.1],
+    "batch_size": [16, 32],
+    "unlabel_batch_ratio": [1],
+    "unlabel_weight": [1],
+    "augmentation": ["char_replace", "word_replace+char_replace"],
+    "augmentation_strength": [0.1, 0.2, 0.3], 
+    "temperature": [1.0]
+  },
+  "14-indomain":{
+    "gpu_type": "t4",
+    "num_gpu": 1,
+    "dataset": "deid-xcloud/data/i2b2_2014",
+    "output_dir": "deid-xcloud/new/i2b2_2014/indomain",
+    "training_ratio": [0.03, 0.1, 0.3],
+    "teacher_dir": ["deid-xcloud/new/i2b2_2014/baseline/to=0.03,le=0.3,be=32,dt=0.2,lt=0.5", "deid-xcloud/new/i2b2_2014/baseline/to=0.1,le=0.3,be=32,dt=0.2,lt=0.5", "deid-xcloud/new/i2b2_2014/baseline/to=0.3,le=0.3,be=32,dt=0.2,lt=0.5"],
+    "learning_rate": [0.3, 0.1],
+    "batch_size": [16, 32],
+    "unlabel_batch_ratio": [1],
+    "unlabel_weight": [1],
+    "augmentation": ["char_replace", "word_replace+char_replace"],
+    "augmentation_strength": [0.1, 0.2, 0.3], 
+    "temperature": [1.0]
+  }, 
+  "mimic-indomain":{
+    "gpu_type": "t4",
+    "num_gpu": 1,
+    "dataset": "deid-xcloud/data/mimic3",
+    "output_dir": "deid-xcloud/new/mimic3/indomain",
+    "training_ratio": [0.03, 0.1, 0.3],
+    "teacher_dir": ["deid-xcloud/new/mimic3/baseline/to=0.03,le=0.3,be=32,dt=0.2,lt=0.5", "deid-xcloud/new/mimic3/baseline/to=0.1,le=0.3,be=32,dt=0.2,lt=0.5", "deid-xcloud/new/mimic3/baseline/to=0.3,le=0.3,be=16,dt=0.2,lt=0.5"],
+    "learning_rate": [0.3, 0.1],
+    "batch_size": [16, 32],
+    "unlabel_batch_ratio": [1],
+    "unlabel_weight": [1],
+    "augmentation": ["char_replace", "word_replace+char_replace"],
+    "augmentation_strength": [0.1, 0.2, 0.3], 
+    "temperature": [1.0]
+  }, 
+  "discharge-indomain":{
+    "gpu_type": "t4",
+    "num_gpu": 1,
+    "dataset": "deid-xcloud/data/discharge",
+    "output_dir": "deid-xcloud/new/discharge/indomain",
+    "training_ratio": [0.03, 0.1, 0.3],
+    "teacher_dir": ["deid-xcloud/new/discharge/baseline/to=0.03,le=0.1,be=16,dt=0.2,lt=0.5", "deid-xcloud/new/discharge/baseline/to=0.1,le=0.1,be=16,dt=0.2,lt=0.5", "deid-xcloud/new/discharge/baseline/to=0.3,le=0.1,be=16,dt=0.2,lt=0.5"],
+    "learning_rate": [0.3, 0.1],
+    "batch_size": [16, 32],
+    "unlabel_batch_ratio": [1],
+    "unlabel_weight": [1],
+    "augmentation": ["char_replace", "word_replace+char_replace"],
+    "augmentation_strength": [0.1, 0.2, 0.3], 
+    "temperature": [1.0]
+  }
+}
