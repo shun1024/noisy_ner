@@ -12,6 +12,13 @@ def dict_product(dicts):
     return (dict(zip(dicts, x)) for x in itertools.product(*dicts.values()))
 
 
+def get_short_name(exp_name):
+    result = []
+    for exp in exp_name:
+        result.append("%s,%s" % (exp[0][:2], exp[1]))
+    return '_'.join(result)
+
+
 def convert_json_to_command():
     non_special_parameter = ['output_dir', 'dataset', 'gpu_type', 'num_gpu', 'exp']
     commands = []
@@ -19,7 +26,8 @@ def convert_json_to_command():
         exps = json.load(f)
         for exp in exps:
             data = exps[exp]
-            base_command = 'python -m noisy_ner.main --dataset %s --output_dir %s' % (data['dataset'], data['output_dir'])
+            base_command = 'python -m noisy_ner.main --dataset %s --output_dir %s' % (
+            data['dataset'], data['output_dir'])
 
             for key in list(data):
                 if key in non_special_parameter:
@@ -28,10 +36,13 @@ def convert_json_to_command():
             parameters = dict_product(data)
             for parameter in parameters:
                 post_command = []
+                exp_name = []
                 for key in parameter:
                     if key not in non_special_parameter:
                         post_command.append('--%s %s' % (key, str(parameter[key])))
+                        exp_name.append([key, str(parameter[key])])
 
+                post_command.append('--exp %s' % get_short_name(exp_name))
                 post_command = ' '.join(post_command)
                 command = '%s %s' % (base_command, post_command)
                 commands.append('"%s"' % command)
