@@ -51,7 +51,9 @@ flags.DEFINE_float('augmentation_strength', 0.15, 'strength for augmentations')
 flags.DEFINE_float('temperature', 1, 'temperature for teacher model')
 
 
-def load_dataset(dataset_folder, load_pickle=True):
+def load_dataset(dataset_folder):
+    load_pickle = os.path.isfile(os.path.join(dataset_folder, 'pickle.pl'))
+    
     if load_pickle:
         logging.info('loading pickle data')
         return pickle.load(open(os.path.join(dataset_folder, 'pickle.pl'), 'rb'))
@@ -73,7 +75,6 @@ def load_dataset(dataset_folder, load_pickle=True):
     if not load_pickle:
         logging.info("dumping pickle data")
         pickle.dump(corpus, open(os.path.join(dataset_folder, 'pickle.pl'), 'wb'))
-        sys.exit()
     return corpus
 
 

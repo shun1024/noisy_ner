@@ -1,6 +1,46 @@
 {
-  "command": ["python ./noisy_ner/main.py --dataset ./data/i2b2_2014"],
-  "output_dir": ["../output/i2b2_2014/baseline"],
-  "training_ratio": [0.01, 0.03, 0.1, 1],
-  "learning_rate": [0.1, 0.3]
+  "2006-baseline": {
+    "gpu_type": "t4",
+    "num_gpu": 1,
+    "dataset": "/h/sliao3/deid/noisy_ner/data/i2b2_2006",
+    "output_dir": "/h/sliao3/deid/noisy_ner/outputs/i2b2_2006/baseline",
+    "training_ratio": [1.0],
+    "learning_rate": [0.1, 0.3],
+    "batch_size": [16, 32], 
+    "dropout": [0.2], 
+    "locked_dropout": [0.5]
+  }, 
+  "2014-baseline": {
+    "gpu_type": "t4",
+    "num_gpu": 1,
+    "dataset": "/h/sliao3/deid/noisy_ner/data/i2b2_2014",
+    "output_dir": "/h/sliao3/deid/noisy_ner/outputs/i2b2_2014/baseline",
+    "training_ratio": [1.0],
+    "learning_rate": [0.1, 0.3],
+    "batch_size": [16, 32], 
+    "dropout": [0.2], 
+    "locked_dropout": [0.5]
+  }, 
+  "mimic3-baseline": {
+    "gpu_type": "t4",
+    "num_gpu": 1,
+    "dataset": "/h/sliao3/deid/noisy_ner/data/mimic3",
+    "output_dir": "/h/sliao3/deid/noisy_ner/outputs/mimic3/baseline",
+    "training_ratio": [1.0],
+    "learning_rate": [0.1, 0.3],
+    "batch_size": [16, 32], 
+    "dropout": [0.2], 
+    "locked_dropout": [0.5]
+  }, 
+  "discharge-baseline": {
+    "gpu_type": "t4",
+    "num_gpu": 1,
+    "dataset": "/h/sliao3/deid/noisy_ner/data/discharge",
+    "output_dir": "/h/sliao3/deid/noisy_ner/outputs/discharge/baseline",
+    "training_ratio": [1.0],
+    "learning_rate": [0.1, 0.3],
+    "batch_size": [16, 32], 
+    "dropout": [0.2], 
+    "locked_dropout": [0.5]
+  }
 }

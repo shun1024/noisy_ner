@@ -2,7 +2,7 @@ import os, sys
 import json, itertools
 
 memory = 32
-gpu = 8
+gpu = 16
 
 json_file = sys.argv[1]
 is_local = sys.argv[2]
@@ -16,23 +16,25 @@ def convert_json_to_command():
     non_special_parameter = ['output_dir', 'dataset', 'gpu_type', 'num_gpu', 'exp']
     commands = []
     with open(json_file, 'r') as f:
-        data = json.load(f)
-        base_command = 'python ./noisy_ner/main.py --dataset %s --output_dir %s' % (data['dataset'], data['output_dir'])
+        exps = json.load(f)
+        for exp in exps:
+            data = exps[exp]
+            base_command = 'python -m noisy_ner.main --dataset %s --output_dir %s' % (data['dataset'], data['output_dir'])
 
-        for key in list(data):
-            if key in non_special_parameter:
-                del data[key]
+            for key in list(data):
+                if key in non_special_parameter:
+                    del data[key]
 
-        parameters = dict_product(data)
-        for parameter in parameters:
-            post_command = []
-            for key in parameter:
-                if key not in non_special_parameter:
-                    post_command.append('--%s %s' % (key, str(parameter[key])))
+            parameters = dict_product(data)
+            for parameter in parameters:
+                post_command = []
+                for key in parameter:
+                    if key not in non_special_parameter:
+                        post_command.append('--%s %s' % (key, str(parameter[key])))
 
-            post_command = ' '.join(post_command)
-            command = '%s %s' % (base_command, post_command)
-            commands.append('"%s"' % command)
+                post_command = ' '.join(post_command)
+                command = '%s %s' % (base_command, post_command)
+                commands.append('"%s"' % command)
     return commands
 
 

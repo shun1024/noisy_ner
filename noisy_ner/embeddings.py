@@ -38,7 +38,7 @@ def get_embedding(embedding, finetune_bert=False):
         if embedding == 'bert':
             result.append(CustomBertEmbeddings(layers="-1", finetune_bert=finetune_bert))
         if embedding == 'glove':
-            result.append(LargeGloveEmbeddings('./data/glove'))
+            result.append(LargeGloveEmbeddings('/scratch/ssd001/home/sliao3/deid/noisy_ner/data/glove'))
 
     return StackedEmbeddings(embeddings=result)
 
