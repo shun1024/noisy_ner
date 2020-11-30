@@ -25,6 +25,7 @@ flags.DEFINE_string('output_dir', './output', 'output directory')
 flags.DEFINE_string('embedding', 'glove+char', 'embedding type')
 flags.DEFINE_string('glove_dir', 'glove', 'glove dir')
 flags.DEFINE_boolean('train_with_dev', True, 'train with dev')
+flags.DEFINE_boolean('save_ckpt', True, 'save skpt')
 flags.DEFINE_string('teacher_dir', None, 'directory with teacher init ckpt and corpus')
 flags.DEFINE_boolean('train_from_scratch', False, 'whether to train student from scratch')
 
@@ -156,7 +157,8 @@ def main(_):
                          train_from_scratch=FLAGS.train_from_scratch,
                          mini_batch_size=FLAGS.batch_size,
                          max_epochs=FLAGS.epoch,
-                         update_teacher=FLAGS.update_teacher)
+                         update_teacher=FLAGS.update_teacher,
+                         save_ckpt=FLAGS.save_ckpt)
 
     logging.info('Finished !!!')
 

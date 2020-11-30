@@ -229,6 +229,7 @@ class CustomTrainer(flair.trainers.ModelTrainer):
         update_teacher: bool = False,
         train_from_scratch: bool = False,
         patience: int = 2,
+        save_ckpt: bool = True,
         **kwargs,
     ) -> dict:
 
@@ -285,7 +286,10 @@ class CustomTrainer(flair.trainers.ModelTrainer):
                         current_score = self.dev_step(out_corpus.test, 'out_dev', writer)
 
                     log.info("Saving model & corpus to local directory")
-                    save_to_ckpt(base_path, self.model, self.corpus, unlabel_data)
+                    if save_ckpt:
+                        save_to_ckpt(base_path, self.model, self.corpus, unlabel_data)
+                    else:
+                        log.info("Skip Saving")
 
                     if is_gcp:
                         log.info("Uploading model to cloud bucket")

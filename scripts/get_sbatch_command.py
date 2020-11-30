@@ -15,7 +15,13 @@ def dict_product(dicts):
 def get_short_name(exp_name):
     result = []
     for exp in exp_name:
-        result.append("%s,%s" % (exp[0][:2], exp[1]))
+        if '/' in exp[1]:
+            value = exp[1].split('/')[-1]
+            if len(value) > 10:
+                value = value[:10]
+        else:
+            value = exp[1]
+        result.append("%s,%s" % (exp[0][:2], value))
     return '_'.join(result)
 
 

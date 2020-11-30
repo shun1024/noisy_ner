@@ -1,0 +1,46 @@
+{
+  "06-outdomain":{
+    "dataset": "/h/sliao3/deid/noisy_ner/data/i2b2_2014",
+    "output_dir": "/h/sliao3/deid/outputs/i2b2_2014/outdomain",
+    "training_ratio": [1.0],
+    "teacher_dir": ["/scratch/ssd001/home/sliao3/deid/outputs/i2b2_2014/embedding/em,glove+char_gl,i2b2_2006_tr,1.0_le,0.3_ba,32_dr,0.2_lo,0.5"],
+    "out_dataset": ["/h/sliao3/deid/noisy_ner/data/i2b2_2006"],
+    "learning_rate": [0.3, 0.1],
+    "batch_size": [32],
+    "unlabel_batch_ratio": [1],
+    "save_ckpt": [false]
+  },
+  "mimic3-outdomain":{
+    "dataset": "/h/sliao3/deid/noisy_ner/data/i2b2_2014",
+    "output_dir": "/h/sliao3/deid/outputs/i2b2_2014/outdomain",
+    "training_ratio": [1.0],
+    "teacher_dir": ["/scratch/ssd001/home/sliao3/deid/outputs/i2b2_2014/embedding/em,glove+char_gl,mimic3_tr,1.0_le,0.3_ba,32_dr,0.2_lo,0.5"],
+    "out_dataset": ["/h/sliao3/deid/noisy_ner/data/mimic3"],
+    "learning_rate": [0.3, 0.1],
+    "batch_size": [32],
+    "unlabel_batch_ratio": [1],
+    "save_ckpt": [false]
+  },
+  "discharge-outdomain":{
+    "dataset": "/h/sliao3/deid/noisy_ner/data/i2b2_2014",
+    "output_dir": "/h/sliao3/deid/outputs/i2b2_2014/outdomain",
+    "training_ratio": [1.0],
+    "teacher_dir": ["/scratch/ssd001/home/sliao3/deid/outputs/i2b2_2014/embedding/em,glove+char_gl,discharge_tr,1.0_le,0.3_ba,32_dr,0.2_lo,0.5"],
+    "out_dataset": ["/h/sliao3/deid/noisy_ner/data/discharge"],
+    "learning_rate": [0.3, 0.1],
+    "batch_size": [32],
+    "unlabel_batch_ratio": [1],
+    "save_ckpt": [false]
+  },
+  "bert-outdomain":{
+    "dataset": "/h/sliao3/deid/noisy_ner/data/i2b2_2014",
+    "output_dir": "/h/sliao3/deid/outputs/i2b2_2014/bert_outdomain",
+    "training_ratio": [1.0],
+    "teacher_dir": ["/scratch/ssd001/home/sliao3/deid/outputs/i2b2_2014/embedding/em,bert+char_gl,discharge_tr,1.0_le,0.3_ba,32_dr,0.2_lo,0.5"],
+    "out_dataset": ["/h/sliao3/deid/noisy_ner/data/i2b2_2006", "/h/sliao3/deid/noisy_ner/data/mimic3", "/h/sliao3/deid/noisy_ner/data/discharge"],
+    "learning_rate": [0.3, 0.1],
+    "batch_size": [32],
+    "unlabel_batch_ratio": [1],
+    "save_ckpt": [false]
+  }
+}
