@@ -44,6 +44,7 @@ flags.DEFINE_integer('batch_size', 32, 'batch size')
 
 # Unlabel flags
 flags.DEFINE_float('training_ratio', 1, 'percentage of label data')
+flags.DEFINE_float('outdomain_label_ratio', 0, 'percentage of label in outdomain')
 flags.DEFINE_float('unlabel_ratio', 1, 'percentage of unlabel data')
 flags.DEFINE_integer('unlabel_batch_ratio', 0, 'unlabel batch size = ratio * batch size')
 flags.DEFINE_boolean('update_teacher', True, 'whether to update teacher')
@@ -55,7 +56,7 @@ flags.DEFINE_float('temperature', 1, 'temperature for teacher model')
 
 def load_dataset(dataset_folder):
     load_pickle = os.path.isfile(os.path.join(dataset_folder, 'pickle.pl'))
-    
+
     if load_pickle:
         logging.info('loading pickle data')
         return pickle.load(open(os.path.join(dataset_folder, 'pickle.pl'), 'rb'))
@@ -72,7 +73,7 @@ def load_dataset(dataset_folder):
                               train_file='train.txt',
                               test_file='test.txt',
                               dev_file='dev.txt')
-    
+
     corpus = normalize_corpus(corpus)
     if not load_pickle:
         logging.info("dumping pickle data")
@@ -89,15 +90,15 @@ def main(_):
 
         # download glove embedding
         download_folder_from_gcs('./data/glove', 'xcloud_public_bucket/shunl/data/glove')
-        
+
         # download training data
         download_folder_from_gcs('./data', FLAGS.dataset)
         FLAGS.dataset = './data'
-        
+
         # download out domain data
         if FLAGS.out_dataset:
             download_folder_from_gcs('./out_data', FLAGS.out_dataset)
-            FLAGS.out_dataset = './out_data'           
+            FLAGS.out_dataset = './out_data'
 
         if FLAGS.teacher_dir:
             download_folder_from_gcs('./model', FLAGS.teacher_dir)
@@ -130,14 +131,18 @@ def main(_):
         tagger, corpus, unlabel_data = init_from_ckpt(FLAGS.teacher_dir)
 
     out_corpus = load_dataset(FLAGS.out_dataset) if FLAGS.out_dataset is not None else None
+    if FLAGS.out_dataset is not None and FLAGS.outdomain_label_ratio > 0:
+        corpus = load_dataset(FLAGS.out_dataset)
+        corpus, unlabel_data = remove_labels(corpus, FLAGS.outdomain_label_ratio)
+
     if out_corpus is not None:
         unlabel_data.total_sentence_count += len(out_corpus.train.sentences)
         unlabel_data.sentences += out_corpus.train.sentences
-    
+
     if FLAGS.unlabel_ratio < 1:
         unlabel_total_length = int(unlabel_data.total_sentence_count * FLAGS.unlabel_ratio)
-        unlabel_data.total_sentence_count = unlabel_total_length 
-        unlabel_data.sentences = unlabel_data.sentences[:unlabel_total_length]       
+        unlabel_data.total_sentence_count = unlabel_total_length
+        unlabel_data.sentences = unlabel_data.sentences[:unlabel_total_length]
 
     trainer = CustomTrainer(tagger, corpus, use_tensorboard=True)
     train_step_ratio = min(10, max(3, int(1 / FLAGS.training_ratio)))

@@ -32,7 +32,7 @@ def convert_json_to_command():
         exps = json.load(f)
         for exp in exps:
             data = exps[exp]
-            base_command = 'python -m noisy_ner.main --dataset %s --output_dir %s' % (
+            base_command = 'python -W ignore -m noisy_ner.main --dataset %s --output_dir %s' % (
             data['dataset'], data['output_dir'])
 
             for key in list(data):
