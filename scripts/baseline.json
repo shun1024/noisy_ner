@@ -3,7 +3,7 @@
     "gpu_type": "t4",
     "num_gpu": 1,
     "dataset": "/h/sliao3/deid/noisy_ner/data/i2b2_2014",
-    "output_dir": "/h/sliao3/deid/noisy_ner/outputs/i2b2_2014/baseline",
+    "output_dir": "/h/sliao3/deid/outputs/i2b2_2014/baseline",
     "training_ratio": [1.0],
     "learning_rate": [0.1, 0.3],
     "batch_size": [16, 32], 

@@ -6,7 +6,7 @@ def read_all_sentences(infile):
     results = []
 
     tmp = []
-    with open(infile, 'w') as f:
+    with open(infile, 'r') as f:
         for line in f:
             if len(line.strip()) == 0:
                 results.append(tmp)
@@ -22,10 +22,8 @@ if __name__ == "__main__":
     files = glob.glob(os.path.join(data_dir, '*'))
     sentences = []
     for infile in files:
-        if 'glove.bin' in infile:
-            continue
-
-        sentences += read_all_sentences(infile)
+        if 'txt' in infile:
+            sentences += read_all_sentences(infile)
 
     model = Word2Vec(sentences, size=300, min_count=1)
     model.build_vocab(sentences)
