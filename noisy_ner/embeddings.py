@@ -19,7 +19,7 @@ from flair.file_utils import cached_path
 log = logging.getLogger("flair")
 
 
-def get_embedding(embedding, finetune_bert=False):
+def get_embedding(embedding, glove_dir='glove', finetune_bert=False):
     embeddings = embedding.split('+')
     result = [CaseEmbedding()]
     # skip updating to new flair version
@@ -38,7 +38,8 @@ def get_embedding(embedding, finetune_bert=False):
         if embedding == 'bert':
             result.append(CustomBertEmbeddings(layers="-1", finetune_bert=finetune_bert))
         if embedding == 'glove':
-            result.append(LargeGloveEmbeddings('/scratch/ssd001/home/sliao3/deid/noisy_ner/data/glove'))
+            glove_dir = os.path.join('/scratch/ssd001/home/sliao3/deid/noisy_ner/data', glove_dir)
+            result.append(LargeGloveEmbeddings(glove_dir))
 
     return StackedEmbeddings(embeddings=result)
 

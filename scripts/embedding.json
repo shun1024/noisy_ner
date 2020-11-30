@@ -1,0 +1,15 @@
+{
+  "2014-baseline": {
+    "gpu_type": "t4",
+    "num_gpu": 1,
+    "dataset": "/h/sliao3/deid/noisy_ner/data/i2b2_2014",
+    "output_dir": "/h/sliao3/deid/outputs/i2b2_2014/embedding",
+    "embedding": ["bert+char", "glove+char"],
+    "glove_dir": ["i2b2_2014", "i2b2_2006", "mimic3", "discharge"],
+    "training_ratio": [1.0],
+    "learning_rate": [0.3],
+    "batch_size": [32],
+    "dropout": [0.2], 
+    "locked_dropout": [0.5]
+  }
+}
