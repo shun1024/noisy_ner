@@ -59,7 +59,7 @@ class LargeGloveEmbeddings(WordEmbeddings):
         self.static_embeddings = True
 
         # Large Glove embeddings
-        embeddings = os.path.join(glove_dir, 'glove.300d.model')
+        embeddings = os.path.join(glove_dir, 'glove.bin')
         self.name: str = str(embeddings)
         self.precomputed_word_embeddings = gensim.models.KeyedVectors.load(embeddings)
         self.__embedding_length: int = self.precomputed_word_embeddings.vector_size

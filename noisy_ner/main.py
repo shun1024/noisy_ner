@@ -115,7 +115,7 @@ def main(_):
         logging.info('finished data loading')
         corpus, unlabel_data = remove_labels(corpus, FLAGS.training_ratio)
         tag_dictionary = corpus.make_tag_dictionary(tag_type='ner')
-        embeddings = get_embedding(FLAGS.embedding, finetune_bert=False)
+        embeddings = get_embedding(FLAGS.embedding, glove_dir=FLAGS.glove_dir, finetune_bert=False)
         tagger = SequenceTagger(hidden_size=FLAGS.hidden_size,
                                 dropout=FLAGS.dropout,
                                 word_dropout=FLAGS.word_dropout,
