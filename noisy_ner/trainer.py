@@ -1,6 +1,6 @@
 from pathlib import Path
 from typing import Union, List
-import pickle, time, logging
+import os, pickle, time, logging
 
 import flair.nn
 from flair.data import Token
@@ -185,12 +185,13 @@ def evaluate(
 
 class CustomTrainer(flair.trainers.ModelTrainer):
 
-    def dev_step(self, corpus, name, writer, mini_batch_size=32):
+    def dev_step(self, corpus, name, writer, mini_batch_size=32, out_path=None):
         # evaluate on train / dev / test split depending on training settings
         self.model.eval()
         eval_result, dev_loss, name_f1 = evaluate(
             self.model,
             DataLoader(corpus, batch_size=mini_batch_size, num_workers=8),
+            out_path=out_path,
             embedding_storage_mode="none",
         )
         log.info(f"DEV {name} : loss {dev_loss} - score {eval_result.main_score}")
@@ -235,6 +236,10 @@ class CustomTrainer(flair.trainers.ModelTrainer):
 
         if self.use_tensorboard:
             writer = SummaryWriter(base_path)
+        
+        if max_epochs == 0: # doing testing only
+            self.dev_step(out_corpus.test, 'out_dev', writer, out_path=os.path.join(base_path, 'result.txt'))
+            return 
 
         # cast string to Path
         if type(base_path) is str:
@@ -281,6 +286,12 @@ class CustomTrainer(flair.trainers.ModelTrainer):
                 if self.epoch % train_step_ratio == 0:
                     # validation steps
                     self.model.eval()
+                    
+                    # save epoch model
+                    print('Saving ckpt for checking')
+                    epoch_model_path = os.path.join(base_path, '%d-epoch-model.pickle' % self.epoch)
+                    pickle.dump(self.model, open(epoch_model_path, 'wb'))
+
                     current_score = self.dev_step(self.corpus.dev, "dev", writer)
                     if out_corpus is not None:
                         current_score = self.dev_step(out_corpus.test, 'out_dev', writer)

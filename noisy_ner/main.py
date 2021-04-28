@@ -83,6 +83,11 @@ def load_dataset(dataset_folder):
 
 def main(_):
     exp_name = FLAGS.exp
+    
+    if os.path.exists(os.path.join(FLAGS.output_dir, exp_name)):
+        print(os.path.join(FLAGS.output_dir, exp_name))
+        sys.exit("DON'T Restart")
+    
     logging.info('Start Exp: {}'.format(exp_name))
 
     if FLAGS.is_gcp:
@@ -134,8 +139,8 @@ def main(_):
     if FLAGS.out_dataset is not None and FLAGS.outdomain_label_ratio > 0:
         corpus = load_dataset(FLAGS.out_dataset)
         corpus, unlabel_data = remove_labels(corpus, FLAGS.outdomain_label_ratio)
-
-    if out_corpus is not None:
+        logging.info('Finish partial label reading')
+    elif out_corpus is not None:
         unlabel_data.total_sentence_count += len(out_corpus.train.sentences)
         unlabel_data.sentences += out_corpus.train.sentences
 
